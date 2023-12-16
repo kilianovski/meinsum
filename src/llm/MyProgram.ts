@@ -140,9 +140,9 @@ export function runEinsumProgram(view: IRenderView, state: IProgramState) {
     let center = modelMtx.mulVec3Proj(modelTarget);
 
     let zoom = 0.7;
-    state.camera.desiredCamera = {
-        center, angle: new Vec3(270, 4.5, zoom),
-    }
+    // state.camera.desiredCamera = {
+    //     center, angle: new Vec3(270, 4.5, zoom),
+    // }
 
     state.camera.center = center;
     state.camera.angle = new Vec3(270, 4.5, zoom);

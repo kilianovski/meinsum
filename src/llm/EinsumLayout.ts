@@ -303,9 +303,45 @@ export function genEinsumLayout(shape: IModelShape, gptGpuModel: IGptModelLink |
         dimX: DimStyle.T, dimY: DimStyle.C,
         name: 'Input Embed',
     });
-    cubes.push(tokEmbedObj, posEmbedObj, residual0);
 
-    let embedLabel = mkLabel(y, [tokEmbedObj, posEmbedObj, residual0]);
+    let shapes = [
+        [8, 8],
+        [8, 8],
+        [8, 8]
+    ];
+
+    let mA = mk({
+        t: 'w',
+        xR: leftX, zM: 0, y: y,
+        cx: shapes[0][0], cz: 1, cy: shapes[0][1], // src has shape [vocabSize, C]
+        access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+        dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+        name: 'A',
+    });
+
+    let mB = mk({
+        t: 'w',
+
+        xM: 0, zM: 0, y: y,
+        cx: shapes[1][0], cz: 1, cy: shapes[1][1],
+        access: { src: gptGpuModel?.posEmbed.weight, x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+        dimX: DimStyle.T, dimY: DimStyle.C,
+        name: 'B',
+    });
+
+    let mC = mk({
+        t: 'i',
+        xL: rightX, zM: 0, y: y,
+        cx: shapes[2][0], cz: 1, cy: shapes[2][1],
+        access: { src: gptGpuModel?.add.output, x: [0, 1, 0], y: [1, 0, T], scale: 10 },
+        deps: { add: [[mA, 'xy'], [mB, 'yi']] }, // the i comes from the idxObj lookup
+        dimX: DimStyle.T, dimY: DimStyle.C,
+        name: 'C',
+    })
+
+    cubes.push(mA, mB, mC);
+
+    let embedLabel = mkLabel(y, [mA, mB, mC]);
 
     y += C * cell + margin;
 
