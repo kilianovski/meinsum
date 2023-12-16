@@ -9,6 +9,7 @@ import { Random } from '@/src/utils/random';
 import { ITensorSet, TensorF32 } from '@/src/utils/tensor';
 import { ProgramStateContext, WalkthroughSidebar } from './Sidebar';
 import { initProgramState, IProgramState, runProgram } from './Program';
+import { runEinsumProgram } from './MyProgram'
 import { CanvasEventSurface } from './CanvasEventSurface';
 import { Vec3 } from '@/src/utils/vector';
 import { loadNativeBindings } from './NativeBindings';
@@ -359,7 +360,9 @@ class CanvasRender {
         }
 
         let view: IRenderView = { time, dt, markDirty: this.markDirty };
-        runProgram(view, this.progState);
+        runEinsumProgram(view, this.progState);
+        // runProgram(view, this.progState);
+        
         this.progState.htmlSubs.notify();
     }
 
