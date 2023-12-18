@@ -1,7 +1,7 @@
 import s from './Sidebar.module.scss';
 import React, { createContext, useContext, useState } from 'react';
 import clsx from 'clsx';
-import { IPhaseDef } from './walkthrough/WalkthroughTools';
+import { IPhaseDef } from './walkthrough/WalkthroughSidebarTools';
 import { PhaseTimeline } from './PhaseTimeline';
 import { Commentary } from './Commentary';
 import { IProgramState } from './Program';

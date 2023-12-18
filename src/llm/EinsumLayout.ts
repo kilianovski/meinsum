@@ -5,6 +5,8 @@ import { Dim, Vec3 } from "@/src/utils/vector";
 import { IBufferTex } from "@/src/utils/renderPhases";
 import { dimProps } from "./Annotations";
 import { DimStyle } from "./walkthrough/WalkthroughTools";
+import { IProgramState } from "./Program";
+import { list } from "postcss";
 
 export interface IBlkDef {
     idx: number; // index in the layout.cubes array
@@ -192,8 +194,9 @@ export function cellPosition(layout: IModelLayout, blk: IBlkDef, dim: Dim, index
 export type IGptModelLayout = ReturnType<typeof genEinsumLayout>;
 export type IGptLayerNormLayout = IGptModelLayout['ln_f'];
 
-export function genEinsumLayout(shape: IModelShape, gptGpuModel: IGptModelLink | null = null, offset: Vec3 = new Vec3(0, 0, 0)) {
-    let { B, T, C, vocabSize, nHeads, A, nBlocks } = shape;
+
+
+export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0, 0, 0)) {
 
     // work our way downwards from the top
     // x is to the left and right
@@ -205,12 +208,11 @@ export function genEinsumLayout(shape: IModelShape, gptGpuModel: IGptModelLink |
     // those blocks might have y-depth but that's OK: still have space to add batches
     // x = 0 is just to the left of time-cell t=0
 
-    let isLargeModel = shape.nBlocks > 12;
 
     let y = 0;
 
     let cell = 1.5;
-    let margin = Math.max(12, C / 10);
+    let margin = Math.max(12, 10);
 
     function mk(args: IBlkDefArgs): IBlkDef {
         let xDef = [args.xL, args.xR, args.xM].map(a => +!isNil(a)).reduce((a, b) => a + b, 0);
@@ -263,283 +265,55 @@ export function genEinsumLayout(shape: IModelShape, gptGpuModel: IGptModelLink |
 
     let cubes: IBlkDef[] = [];
 
-    let idxObj = mk({
-        t: 'i', cx: T, cz: B, cy: 1, y: y,
-        xM: 0, zM: 0,
-        access: { src: gptGpuModel?.inputTokens, x: [0, 1, 0], y: [1, 0, T], scale: 1 / vocabSize},
-        dimX: DimStyle.T, dimY: DimStyle.None,
-        name: 'Tokens',
-    });
 
-    let leftX = -T * cell / 2 - margin;
-    let rightX = T * cell / 2 + margin;
+    const inputs = [];
 
-    y += cell + margin;
-
-    let tokEmbedObj = mk({
-        t: 'w',
-        xR: leftX, zM: 0, y: y,
-        cx: vocabSize, cz: 1, cy: C, // src has shape [vocabSize, C]
-        access: { src: gptGpuModel?.vocabEmbed.weight, x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-        dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-        name: 'Token Embed',
-    });
-
-    let posEmbedObj = mk({
-        t: 'w',
-        xL: rightX, zM: 0, y: y,
-        cx: T, cz: 1, cy: C,
-        access: { src: gptGpuModel?.posEmbed.weight, x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-        dimX: DimStyle.T, dimY: DimStyle.C,
-        name: 'Position Embed',
-    });
-
-    let residual0 = mk({
-        t: 'i',
-        xM: 0, zM: 0, y: y,
-        cx: T, cz: B, cy: C,
-        access: { src: gptGpuModel?.add.output, x: [0, 1, 0], y: [1, 0, T], scale: 10 },
-        deps: { add: [[tokEmbedObj, 'iy'], [posEmbedObj, 'xy']], special: BlKDepSpecial.InputEmbed }, // the i comes from the idxObj lookup
-        dimX: DimStyle.T, dimY: DimStyle.C,
-        name: 'Input Embed',
-    });
-
-    let shapes = [
-        [8, 8],
-        [8, 8],
-        [8, 8]
-    ];
-
-    let mA = mk({
-        t: 'w',
-        xR: leftX, zM: 0, y: y,
-        cx: shapes[0][0], cz: 1, cy: shapes[0][1], // src has shape [vocabSize, C]
-        access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-        dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-        name: 'A',
-    });
-
-    let mB = mk({
-        t: 'w',
-
-        xM: 0, zM: 0, y: y,
-        cx: shapes[1][0], cz: 1, cy: shapes[1][1],
-        access: { src: gptGpuModel?.posEmbed.weight, x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-        dimX: DimStyle.T, dimY: DimStyle.C,
-        name: 'B',
-    });
-
-    let mC = mk({
-        t: 'i',
-        xL: rightX, zM: 0, y: y,
-        cx: shapes[2][0], cz: 1, cy: shapes[2][1],
-        access: { src: gptGpuModel?.add.output, x: [0, 1, 0], y: [1, 0, T], scale: 10 },
-        deps: { add: [[mA, 'xy'], [mB, 'yi']] }, // the i comes from the idxObj lookup
-        dimX: DimStyle.T, dimY: DimStyle.C,
-        name: 'C',
-    })
-
-    cubes.push(mA, mB, mC);
-
-    let embedLabel = mkLabel(y, [mA, mB, mC]);
-
-    y += C * cell + margin;
-
-    function createLn(x: number, src: IBlkDef, target?: ILayerNormLayerLink) {
-        let lnLeftX = leftX + x;
-        let resLeftX = lnLeftX - T * cell - margin;
-
-        let lnAgg1 = mk({
-            t: 'a', cx: T, cz: B, cy: 1, y: y,
-            xR: lnLeftX, zM: 0,
-            access: { src: target?.normAgg, x: [0, 1, 0], y: [1, 0, T], scale: 10.0, channel: 'r' },
-            deps: { add: [[src, 'xi']], special: BlKDepSpecial.LayerNormMu },
-            dimX: DimStyle.T, dimY: DimStyle.None, small: true,
-            name: 'LN Agg: μ, σ',
-        });
-        let lnAgg2 = mk({
-            t: 'a', cx: T, cz: B, cy: 1, y: y + cell,
-            xR: lnLeftX, zM: 0,
-            access: { src: target?.normAgg, x: [0, 1, 0], y: [1, 0, T], scale: 10.0, channel: 'g' },
-            deps: { add: [[src, 'xi']], special: BlKDepSpecial.LayerNormSigma },
-            dimX: DimStyle.T, dimY: DimStyle.None, small: true,
-            name: '',
-        });
-
-        y += 2 * cell + margin;
-
-        let lnSigma = mk({
-            t: 'w', cx: 1, cz: 1, cy: C, y: y,
-            xR: resLeftX, zM: 0,
-            access: { src: target?.normWeight, x: [1, 0, 0], y: [0, 1, 0], scale: 0.5 }, // mostly around 1.0
-            dimX: DimStyle.None, dimY: DimStyle.C,
-            name: 'γ', small: true,
-        });
-        let lnMu = mk({
-            t: 'w', cx: 1, cz: 1, cy: C, y: y,
-            xR: resLeftX - cell * 1 - margin, zM: 0,
-            access: { src: target?.normBias, x: [1, 0, 0], y: [0, 1, 0] },
-            dimX: DimStyle.None, dimY: DimStyle.C,
-            name: 'β', small: true,
-        });
-        let lnResid = mk({
-            t: 'i', cx: T, cz: B, cy: C, y: y,
-            xR: lnLeftX, zM: 0,
-            access: { src: target?.output, x: [0, 1, 0], y: [1, 0, T], scale: 1.0 },
-            deps: { add: [[src, 'xy'], [lnAgg1, 'xi'], [lnAgg2, 'xi'], [lnSigma, '0y'], [lnMu, '0y']], special: BlKDepSpecial.LayerNorm }, // lnSigma is really mul rather than add
-            dimX: DimStyle.T, dimY: DimStyle.C,
-            name: 'Layer Norm',
-        });
-        let lnCubes = [lnAgg1, lnAgg2, lnSigma, lnMu, lnResid];
-        return { lnAgg1, lnAgg2, lnResid, lnSigma, lnMu, cubes: lnCubes };
+    function parseShape(shape) {
+        if (Array.isArray(shape)) {
+            return shape;
+        } else if (typeof shape === 'string') {
+            return shape.split(',').map(Number);
+        }
     }
+    // for (let i = 0; i < state.inputs.length; ++i) {
+    //     const {shape, name} = state.inputs[i];
+    //     const actualShape = parseShape(shape);
+    //     const cube = mk({
+    //         t: 'w',
+    //         xL: leftX + i*rightX, zM: 0, y: y,
+    //         cx: actualShape[0], cy: actualShape[1], cz: 1,
+    //         access: { src: gptGpuModel?.add.output, x: [0, 1, 0], y: [1, 0, T], scale: 10 },
+    //         dimX: DimStyle.T, dimY: DimStyle.C,
+    //         name: name,
+    //     })
 
-    let lnLeftX = leftX - (T + 2) * cell - 3 * margin;
-
-    let blockHalfMargin = 2 * margin;
-
-    y += blockHalfMargin;
-
-    let numColumns = 1;
-    let blocksPerColumn = 12;
-    if (shape.nBlocks > blocksPerColumn) {
-        numColumns = Math.ceil(shape.nBlocks / blocksPerColumn);
-    }
-    let columnWidth = (C * 14) * cell + margin * 2;
-    let blockIdxInColumn = 0;
-    let blockYTop = y;
-
-    let blocks = [];
-    let blockSrc = residual0;
+    //     inputs.push(cube)
+    //     cubes.push(cube);
+    // }
 
 
-    y += blockHalfMargin;
-    let ln_f = createLn(0, blockSrc, gptGpuModel?.ln_f);
+    // cubes.push(mC);
+    const shapes = [[8, 8], [16, 32], [8, 8]];
+    let xL = 0;
 
-    // cubes.push(...ln_f.cubes);
+    for (let i = 0; i < shapes.length; i++) {
+        const s = shapes[i];
 
-    let logitsTransposed = false;
-
-    let lmHeadWeight: IBlkDef, logits: IBlkDef, logitsAgg1: IBlkDef, logitsAgg2: IBlkDef, logitsSoftmax: IBlkDef;
-
-    if (logitsTransposed) {
-        lmHeadWeight = mk({
-            t: 'w', cx: vocabSize, cz: 1, cy: C, y: y,
-            xR: lnLeftX, zM: 0,
-            access: { src: gptGpuModel?.lm_head.weight, x: [0, 1, 0], y: [1, 0, 0], scale: 5.0 },
+        let m = mk({
+            t: 'w',
+            xL: xL, zM: 0, y: y,
+            cx: s[0], cz: 1, cy: s[1],
+            access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
             dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-            name: 'LM Head Weights',
+            name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
         });
-
-        y += C * cell + margin;
-
-        logits = mk({
-            t: 'i', cx: vocabSize, cz: B, cy: T, y: y,
-            xR: lnLeftX, zM: 0,
-            access: { src: gptGpuModel?.lm_head.output, x: [1, 0, 0], y: [0, 1, T] },
-            deps: { dot: [[lmHeadWeight, 'xi'], [ln_f.lnResid, 'yi']], dotLen: C },
-            dimX: DimStyle.n_vocab, dimY: DimStyle.T,
-            name: 'Logits',
-        });
-
-        // z += vocabSize * cell + margin;
-
-        logitsAgg1 = mk({
-            t: 'a', cx: 1, cz: B, cy: T, y: y,
-            xL: lnLeftX + 1.5 * margin, zM: -3 * cell,
-            access: { src: gptGpuModel?.softmaxFinal.agg, x: [1, 0, 0], y: [0, 1, T], channel: 'r' },
-            deps: { add: [[logits, 'iy']], special: BlKDepSpecial.SoftmaxAggExp },
-            dimX: DimStyle.None, dimY: DimStyle.T,
-            name: 'SM Agg',
-        });
-
-        logitsAgg2 = mk({
-            t: 'a', cx: 1, cz: B, cy: T, y: y,
-            xL: lnLeftX + 1.5 * margin + cell, zM: -3 * cell,
-            access: { src: gptGpuModel?.softmaxFinal.agg, x: [1, 0, 0], y: [0, 1, T], channel: 'g' },
-            deps: { add: [[logits, 'iy']], special: BlKDepSpecial.SoftmaxAggMax },
-            dimX: DimStyle.None, dimY: DimStyle.T,
-            name: '',
-        });
-
-        y += T * cell + margin;
-
-        logitsSoftmax = mk({
-            t: 'i', cx: vocabSize, cz: B, cy: T, y: y,
-            xR: lnLeftX, zM: 0,
-            access: { src: gptGpuModel?.softmaxFinal.output, x: [1, 0, 0], y: [0, 1, T] },
-            deps: { add: [[logits, 'xy'], [logitsAgg1, 'iy'], [logitsAgg2, 'iy']], special: BlKDepSpecial.Softmax },
-            dimX: DimStyle.n_vocab, dimY: DimStyle.T,
-            name: 'Logits Softmax',
-        });
-
-    } else {
-        y += C * cell + margin;
-        let leftX2 = leftX - T * cell - margin;
-
-        lmHeadWeight = mk({
-            t: 'w', cx: C, cy: vocabSize, cz: 1, y: y,
-            xR: leftX2, zM: 0,
-            access: { src: gptGpuModel?.lm_head.weight, x: [1, 0, 0], y: [0, 1, 0], scale: 5.0 },
-            dimX: DimStyle.C, dimY: DimStyle.n_vocab,
-            name: 'LM Head Weights',
-        });
-
-
-        logits = mk({
-            t: 'i', cx: T, cy: vocabSize, cz: B, y: y,
-            xR: leftX, zM: 0,
-            access: { src: gptGpuModel?.lm_head.output, x: [0, 1, 0], y: [1, 0, T] },
-            deps: { dot: [[lmHeadWeight, 'iy'], [ln_f.lnResid, 'xi']], dotLen: C },
-            dimX: DimStyle.T, dimY: DimStyle.n_vocab,
-            name: 'Logits',
-        });
-
-        y += vocabSize * cell + margin;
-
-        logitsAgg2 = mk({
-            t: 'a', cx: T, cy: 1, cz: B, y: y,
-            xR: leftX, zM: 0,
-            access: { src: gptGpuModel?.softmaxFinal.agg, x: [0, 1, 0], y: [1, 0, T], channel: 'g' },
-            deps: { add: [[logits, 'xi']], special: BlKDepSpecial.SoftmaxAggMax },
-            dimX: DimStyle.T, dimY: DimStyle.None,
-            name: 'SM Agg',
-        });
-
-        logitsAgg1 = mk({
-            t: 'a', cx: T, cy: 1, cz: B, y: y + cell,
-            xR: leftX, zM: 0,
-            access: { src: gptGpuModel?.softmaxFinal.agg, x: [0, 1, 0], y: [1, 0, T], channel: 'r' },
-            deps: { add: [[logits, 'xi'], [logitsAgg2, 'x0']], special: BlKDepSpecial.SoftmaxAggExp },
-            dimX: DimStyle.T, dimY: DimStyle.None,
-            name: '',
-        });
-
-        y += 2 * cell + margin;
-
-        logitsSoftmax = mk({
-            t: 'i', cx: T, cy: vocabSize, cz: B, y: y,
-            xR: leftX, zM: 0,
-            access: { src: gptGpuModel?.softmaxFinal.output, x: [0, 1, 0], y: [1, 0, T] },
-            deps: { add: [[logits, 'xy'], [logitsAgg1, 'xi'], [logitsAgg2, 'xi']], special: BlKDepSpecial.Softmax },
-            dimX: DimStyle.T, dimY: DimStyle.n_vocab,
-            name: 'Logits Softmax',
-        });
-
+        xL += (s[0] * cell + margin);
+        cubes.push(m);
     }
 
-    // let logitsSoftmaxTopN = mk({
-    //     t: 'i', cx: T, cz: B, cy: Math.min(32, vocabSize), y: y,
-    //     xM: 0, zM: 0,
-    // });
 
-    let weightCount = vocabSize*C + T*C +
-        nBlocks * ((2*C + 4*C*C + C + 3*C) + // self attn
-                   (2*C + 4*C + 8*C*C + C)) + 2*C; // mlp
+    let embedLabel = mkLabel(y, cubes);
 
-    // let decoderCount = vocabSize * C; (excluded from the weight count apparently)
-
-    // cubes.push(lmHeadWeight, logits, logitsAgg1, logitsAgg2, logitsSoftmax);
 
     for (let i = 0; i < cubes.length; i++) {
         cubes[i].idx = i;
@@ -549,28 +323,9 @@ export function genEinsumLayout(shape: IModelShape, gptGpuModel: IGptModelLink |
         cubes,
         cell,
         margin,
-        idxObj,
-        tokEmbedObj,
-        posEmbedObj,
-        residual0,
-        ln_f,
-        lmHeadWeight,
-        logits,
-        logitsAgg1,
-        logitsAgg2,
-        logitsSoftmax,
+
         embedLabel,
-        blocks,
         height: y,
-        logitsTransposed,
-        model: gptGpuModel,
-        labels: [embedLabel, ...blocks.flatMap(b => b.labels)],
-        weightCount,
-        shape,
-        extraSources: {
-            idx: gptGpuModel?.inputBuf,
-            tokEmbedOut: gptGpuModel?.vocabEmbed.output,
-            posEmbedOut: gptGpuModel?.posEmbed.output,
-        },
+        labels: [embedLabel],
     };
 }

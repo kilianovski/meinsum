@@ -1,5 +1,7 @@
 import React from 'react';
 import { useProgramState } from '../Sidebar';
+// import { StringEditor } from "@/src/utils/Di";
+import { StringEditor } from './StringEditor';
 import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExpand, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
@@ -37,6 +39,18 @@ export const ModelSelectorToolbar: React.FC<{
         progState.markDirty();
     }
 
+    function onEinstringUpdate(end: boolean, value: string) {
+        progState.einstring = value;
+        // progState.markDirty();
+    }
+
+    function onShapeChanged(e, i) {
+        const shape = e.target.value;
+
+        progState.inputs[i].shape = shape
+        progState.markDirty()
+    }
+
     function onMagnifyClick() {
         let example = progState.examples[progState.currExampleId] ?? progState.mainExample;
         let layout = example.layout ?? progState.layout;
@@ -45,7 +59,7 @@ export const ModelSelectorToolbar: React.FC<{
 
         // new Vec3(-1.771, 0.750, -4.470), new Vec3(270.000, 4.500, 0.739)
 
-        let obj = layout.residual0;
+        let obj = layout.cubes[layout.cubes.length-1];
         let modelTarget = new Vec3(obj.x, obj.y, obj.z);
         let modelMtx = progState.camera.modelMtx.mul(Mat4f.fromTranslation(example.offset))
 
@@ -60,10 +74,16 @@ export const ModelSelectorToolbar: React.FC<{
 
     return <div className='absolute top-0 left-0 flex flex-col'>
         <div className='mt-2 ml-2 flex flex-row'>
-            {makeButton(0)}
+            {/* {makeButton(0)}
             {makeButton(-1)}
-            {makeButton(1)}
-            {makeButton(2)}
+            {makeButton(1)} */}
+            {/* {makeButton(2)} */}
+            {progState.inputs.map((input, i) => <div key={i}>
+                <p>{input.name}</p> <input value={input.shape} onChange={e => onShapeChanged(e, i)} />
+            </div>)}
+
+            <StringEditor value={progState.einstring} update={onEinstringUpdate} />
+
         </div>
         <div className='ml-2 flex flex-row'>
             <div className={clsx('m-2 p-2 bg-white min-w-[2rem] flex justify-center rounded shadow cursor-pointer hover:bg-blue-300')} onClick={onExpandClick}>

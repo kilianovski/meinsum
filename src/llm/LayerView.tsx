@@ -8,8 +8,8 @@ import { fetchFontAtlasData, IFontAtlasData } from './render/fontRender';
 import { Random } from '@/src/utils/random';
 import { ITensorSet, TensorF32 } from '@/src/utils/tensor';
 import { ProgramStateContext, WalkthroughSidebar } from './Sidebar';
-import { initProgramState, IProgramState, runProgram } from './Program';
-import { runEinsumProgram } from './MyProgram'
+import { IProgramState, runProgram } from './Program';
+import { runEinsumProgram, initCamera, initProgramState } from './MyProgram'
 import { CanvasEventSurface } from './CanvasEventSurface';
 import { Vec3 } from '@/src/utils/vector';
 import { loadNativeBindings } from './NativeBindings';
@@ -187,11 +187,12 @@ export function LayerView() {
         }
     }, [canvasRender, layout]);
 
-    let sidebar = canvasRender && <div className={s.sidebar}>
-        <ProgramStateContext.Provider value={canvasRender.progState}>
-            <WalkthroughSidebar />
-        </ProgramStateContext.Provider>
-    </div>;
+    let sidebar = canvasRender;
+    // && <div className={s.sidebar}>
+    //     <ProgramStateContext.Provider value={canvasRender.progState}>
+    //         {/* <WalkthroughSidebar /> */}
+    //     </ProgramStateContext.Provider>
+    // </div>;
 
     let mainView = <div className={s.canvasWrap}>
         <canvas
@@ -219,9 +220,9 @@ export function LayerView() {
 
     return <div className={s.view}>
         <Resizer id={"llm-sidebar"} className={"flex-1"} vertical={!layout.isDesktop} defaultFraction={0.4}>
-            {layout.isDesktop && sidebar}
+            {/* {layout.isDesktop && sidebar} */}
             {mainView}
-            {!layout.isDesktop && sidebar}
+            {/* {!layout.isDesktop && sidebar} */}
         </Resizer>
     </div>;
 }
@@ -244,6 +245,8 @@ class CanvasRender {
         this.progState.walkthrough.markDirty = this.markDirty;
         this.renderState = this.progState.render;
         this.random = new Random(4);
+
+        initCamera(this.progState);
     }
 
     destroy() {

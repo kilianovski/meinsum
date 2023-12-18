@@ -25,6 +25,8 @@ import { DimStyle } from "./walkthrough/WalkthroughTools";
 import { Subscriptions } from "../utils/hooks";
 
 export interface IProgramState {
+    inputs: [],
+    einstring: string,
     native: NativeFunctions | null;
     wasmGptModel: IWasmGptModel | null;
     stepModel: boolean;
@@ -143,7 +145,16 @@ export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFo
 
     let delta = new Vec3(10000, 0, 0);
 
+    let inputs = [
+        {name: 'A', shape: '3,2'},
+        {name: 'B', shape: '2,3'},
+    ]
+
+    let einstring = 'ik,jk->ij';
+
     return {
+        inputs,
+        einstring,
         native: null,
         wasmGptModel: null,
         render: render!,

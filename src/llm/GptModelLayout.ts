@@ -194,7 +194,7 @@ export type IGptLayerNormLayout = IGptModelLayout['ln_f'];
 
 export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink | null = null, offset: Vec3 = new Vec3(0, 0, 0)) {
     let { B, T, C, vocabSize, nHeads, A, nBlocks } = shape;
-
+    faArrowsUpDownLeftRight()
     // work our way downwards from the top
     // x is to the left and right
     // y is positive going down, and the stack advances down from the top (at (0, 0, 0))

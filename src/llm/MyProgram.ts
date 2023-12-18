@@ -1,6 +1,6 @@
 import { genModelViewMatrices, ICamera, ICameraPos, updateCamera } from "./Camera";
 import { drawAllArrows } from "./components/Arrow";
-import { drawBlockLabels } from "./components/SectionLabels";
+import { drawBlockLabels, drawSectionLabel } from "./components/SectionLabels";
 import { drawModelCard } from "./components/ModelCard";
 import { IGptModelLink, IGpuGptModel, IModelShape } from "./GptModel";
 import { genGptModelLayout, IBlkDef, IGptModelLayout } from "./GptModelLayout";
@@ -25,29 +25,7 @@ import { ILayout } from "../utils/layout";
 import { DimStyle } from "./walkthrough/WalkthroughTools";
 import { Subscriptions } from "../utils/hooks";
 
-export interface IProgramState {
-    native: NativeFunctions | null;
-    wasmGptModel: IWasmGptModel | null;
-    stepModel: boolean;
-    mouse: IMouseState;
-    render: IRenderState;
-    inWalkthrough: boolean;
-    walkthrough: ReturnType<typeof initWalkthrough>;
-    camera: ICamera;
-    htmlSubs: Subscriptions;
-    layout: IGptModelLayout;
-    mainExample: IModelExample;
-    examples: IModelExample[];
-    currExampleId: number;
-    shape: IModelShape;
-    gptGpuModel: IGpuGptModel | null;
-    jsGptModel: IGptModelLink | null;
-    movement: IMovementInfo;
-    display: IDisplayState;
-    pageLayout: ILayout;
-    markDirty: () => void;
-}
-
+import { IProgramState } from "./Program";
 export interface IModelExample {
     name: string;
     shape: IModelShape;
@@ -81,6 +59,175 @@ export interface IHoverTarget {
     mainIdx: Vec3;
 }
 
+export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtlasData): IProgramState {
+
+    let render = initRender(canvasEl, fontAtlasData);
+    let walkthrough = initWalkthrough();
+
+    let prevState = SavedState.state;
+    let camera: ICamera = {
+        angle: prevState?.camera.angle ?? new Vec3(296, 16, 13.5),
+        center: prevState?.camera.center ?? new Vec3(-8.4, 0, -481.5),
+        transition: {},
+        modelMtx: new Mat4f(),
+        viewMtx: new Mat4f(),
+        lookAtMtx: new Mat4f(),
+        camPos: new Vec3(),
+        camPosModel: new Vec3(),
+    }
+
+    let shape: IModelShape = {
+        B: 1,
+        T: 11,
+        C: 48,
+        nHeads: 3,
+        A: 48 / 3,
+        nBlocks: 3,
+        vocabSize: 3,
+    };
+
+    let gpt2ShapeSmall: IModelShape = {
+        B: 1,
+        T: 1024,
+        C: 768,
+        nHeads: 12,
+        A: 768 / 12,
+        nBlocks: 12,
+        vocabSize: 50257,
+    };
+
+    let gpt2ShapeLarge: IModelShape = {
+        B: 1,
+        T: 1024,
+        C: 1600,
+        nHeads: 25,
+        A: 1600 / 25,
+        nBlocks: 48,
+        vocabSize: 50257,
+    };
+
+    let gpt3Shape: IModelShape = {
+        B: 1,
+        T: 1024,
+        C: 12288,
+        nHeads: 96,
+        A: 12288 / 96,
+        nBlocks: 96,
+        vocabSize: 50257,
+    };
+
+    function makeCamera(center: Vec3, angle: Vec3): ICameraPos {
+        return { center, angle };
+    }
+
+    let delta = new Vec3(10000, 0, 0);
+
+    let inputs = [
+        { name: 'A', shape: '3,2' },
+        { name: 'B', shape: '2,3' },
+    ]
+
+    let einstring = 'ik,jk->ij';
+
+    return {
+        inputs,
+        einstring,
+        native: null,
+        wasmGptModel: null,
+        render: render!,
+        inWalkthrough: true,
+        walkthrough,
+        camera,
+        shape: shape,
+        layout: genEinsumLayout(shape),
+        currExampleId: -1,
+        mainExample: {
+            name: 'nano-gpt',
+            enabled: true,
+            shape: shape,
+            offset: new Vec3(),
+            modelCardOffset: new Vec3(),
+            blockRender: null!,
+            camera: makeCamera(new Vec3(42.771, 0.000, -569.287), new Vec3(284.959, 26.501, 12.867)),
+        },
+        examples: [{
+            name: 'GPT-2 (small)',
+            enabled: true,
+            shape: gpt2ShapeSmall,
+            offset: delta.mul(-5),
+            modelCardOffset: delta.mul(-2.0),
+            blockRender: initBlockRender(render?.ctx ?? null),
+            camera: makeCamera(new Vec3(-65141.321, 0.000, -69843.439), new Vec3(224.459, 24.501, 1574.240)),
+        }, {
+            name: 'GPT-2 (XL)',
+            enabled: true,
+            shape: gpt2ShapeLarge,
+            offset: delta.mul(20),
+            modelCardOffset: delta.mul(0.5),
+            blockRender: initBlockRender(render?.ctx ?? null),
+            camera: makeCamera(new Vec3(237902.688, 0.000, -47282.484), new Vec3(311.959, 23.501, 1382.449)),
+        }, {
+            name: 'GPT-3',
+            enabled: false,
+            shape: gpt3Shape,
+            offset: delta.mul(50.0),
+            modelCardOffset: delta.mul(15.0),
+            blockRender: initBlockRender(render?.ctx ?? null),
+            camera: makeCamera(new Vec3(837678.163, 0.000, -485242.286), new Vec3(238.959, 10.501, 12583.939)),
+        }],
+        gptGpuModel: null,
+        jsGptModel: null,
+        stepModel: false,
+        markDirty: () => { },
+        htmlSubs: new Subscriptions(),
+        mouse: {
+            mousePos: new Vec3(),
+        },
+        movement: {
+            action: null,
+            actionHover: null,
+            target: [0, 0],
+            depth: 1,
+            cameraLerp: null,
+        },
+        display: {
+            tokenColors: null,
+            tokenIdxColors: null,
+            tokenOutputColors: null,
+            lines: [],
+            hoverTarget: null,
+            dimHover: null,
+            blkIdxHover: null,
+        },
+        pageLayout: {
+            height: 0,
+            width: 0,
+            isDesktop: true,
+            isPhone: true,
+        }
+    };
+}
+
+export function initCamera(state: IProgramState) {
+    const cubes = state.layout.cubes;
+
+    let obj = cubes[cubes.length - 1];
+    console.log(cubes)
+    let modelTarget = new Vec3(obj.x, obj.y, obj.z);
+    let modelMtx = state.camera.modelMtx.mul(Mat4f.fromTranslation(state.mainExample.offset))
+
+    let center = modelMtx.mulVec3Proj(modelTarget);
+
+    let zoom = 0.7;
+    // state.camera.desiredCamera = {
+    //     center, angle: new Vec3(270, 4.5, zoom),
+    // }
+
+    state.camera.center = center;
+    // state.camera.center = new Vec3(-8.25, 0.75, -13.5)
+    state.camera.angle = new Vec3(270, 4.5, 0.8);
+}
+
 export function runEinsumProgram(view: IRenderView, state: IProgramState) {
     // console.log('Banana program!')
     let timer0 = performance.now();
@@ -106,8 +253,7 @@ export function runEinsumProgram(view: IRenderView, state: IProgramState) {
     }
 
     // generate the base model, incorporating the gpu-side model if available
-    state.layout = genEinsumLayout(state.shape, state.jsGptModel);
-    
+    state.layout = genEinsumLayout(state);
 
 
     // @TODO: handle different models in the same scene.
@@ -121,6 +267,14 @@ export function runEinsumProgram(view: IRenderView, state: IProgramState) {
 
     genModelViewMatrices(state, state.layout!);
 
+
+    // will modify layout; view; render a few things.
+    // if (state.inWalkthrough) {
+    //     runWalkthrough(state, view);
+    // }
+
+
+    updateCamera(state, view);
     let queryRes = beginQueryAndGetPrevMs(state.render.queryManager, 'render');
     if (isNotNil(queryRes)) {
         state.render.lastGpuMs = queryRes;
@@ -128,28 +282,6 @@ export function runEinsumProgram(view: IRenderView, state: IProgramState) {
 
     state.render.renderTiming = false; // state.pageLayout.isDesktop;
 
-    // will modify layout; view; render a few things.
-    // if (state.inWalkthrough) {
-    //     runWalkthrough(state, view);
-    // }
-
-    let obj = state.layout.residual0;
-    let modelTarget = new Vec3(obj.x, obj.y, obj.z);
-    let modelMtx = state.camera.modelMtx.mul(Mat4f.fromTranslation(state.mainExample.offset))
-
-    let center = modelMtx.mulVec3Proj(modelTarget);
-
-    let zoom = 0.7;
-    // state.camera.desiredCamera = {
-    //     center, angle: new Vec3(270, 4.5, zoom),
-    // }
-
-    state.camera.center = center;
-    state.camera.angle = new Vec3(270, 4.5, zoom);
-    updateCamera(state, view);
-
-    console.log('state.camera')
-    console.log(state.camera)
 
     drawBlockInfo(state);
     // // these will get modified by the walkthrough (stored where?)
@@ -158,16 +290,31 @@ export function runEinsumProgram(view: IRenderView, state: IProgramState) {
     // drawModelCard(state, state.layout, 'nano-gpt', new Vec3());
     // drawTokens(state.render, state.layout, state.display);
 
-    for (let example of state.examples) {
-        if (example.enabled && example.layout) {
-            drawModelCard(state, example.layout, example.name, example.offset.add(example.modelCardOffset));
-        }
-    }
+    // for (let example of state.examples) {
+    //     if (example.enabled && example.layout) {
+    //         drawModelCard(state, example.layout, example.name, example.offset.add(example.modelCardOffset));
+    //     }
+    // }
 
     // manageMovement(state, view);
     runMouseHitTesting(state);
     state.render.sharedRender.activePhase = RenderPhase.Opaque;
-    drawBlockLabels(state.render, state.layout);
+    // drawBlockLabels(state.render, state.layout);
+    let baseColor = new Vec4(0.4, 0.4, 0.4, 1.0);
+
+    {
+        const layout = state.layout;
+        // const st
+
+        const x = -10;
+        const y = 10;
+        const dy = 5;
+
+        let color = baseColor.mul(layout.embedLabel.visible);
+        let tl = new Vec3(x - layout.margin * 2, y, 0);
+        let br = new Vec3(x - layout.margin * 2, y + dy, 0);
+        drawSectionLabel(state.render, "Embedding", tl, br, { color, fontSize: 6, pad: 4 });
+    }
 
     let lineNo = 1;
     let tw = state.render.size.x;
