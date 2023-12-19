@@ -213,6 +213,8 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
     let cell = 1.5;
     let margin = Math.max(12, 10);
+    let dim3_margin = 3;
+    let dim3_cell = 0.1;
 
     function mk(args: IBlkDefArgs): IBlkDef {
         let xDef = [args.xL, args.xR, args.xM].map(a => +!isNil(a)).reduce((a, b) => a + b, 0);
@@ -251,7 +253,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             } : undefined,
             deps: args.deps ? depArgsToDeps(args.deps) : undefined,
             opacity: args.hidden ? 0.0 : 1.0,
-            highlight: 0.0,
+            highlight: .0,
             small: args.small ?? false,
             special: args.special ?? BlkSpecial.None,
             transpose: args.transpose,
@@ -293,27 +295,95 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
 
     // cubes.push(mC);
-    const shapes = [[8, 8], [16, 32], [8, 8]];
+    const shapes = [[3, 8, 3, 8], [3,8], [4, 3, 6], [16, 8], [8, 8]];
     let xL = 0;
 
     for (let i = 0; i < shapes.length; i++) {
         const s = shapes[i];
+        let deps = null;
+        if (i == shapes.length - 1) {
+            const last_cube = cubes[cubes.length - 1]
+            const first_cube = cubes[0]
 
-        let m = mk({
-            t: 'w',
-            xL: xL, zM: 0, y: y,
-            cx: s[0], cz: 1, cy: s[1],
-            access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-            dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-            name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
-        });
-        xL += (s[0] * cell + margin);
-        cubes.push(m);
+            deps = { add: [[last_cube, 'xi'], [first_cube, 'ix']] };
+        };
+
+        if (s.length > 2) {
+            const dim1 = s[s.length-1];
+            const dim2 = s[s.length-2];
+            const dim3 = s[s.length-3];
+            let zF = 0;
+
+            for (let m = s.length - 4; m >= 0; m--) {
+                const dimM = s[m];
+
+                for (let q = 0; q < dimM; q++) {
+                    
+                    // 3rd dimension
+                    
+                    for (let k = 0; k < dim3; k++ ){
+                        let m = mk({
+                            t: 'w',
+                            xL: xL, zF: zF, y: y,
+                            cx: dim1, cz: 1, cy: dim2,
+                            deps: deps,
+                            access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+                            dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+                            name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
+                        });
+                        zF -= (dim3 * dim3_cell + dim3_margin)
+                        cubes.push(m);
+                    }
+                    zF -= (10 * dim3 * dim3_cell + dim3_margin)
+                }
+
+            }
+
+
+            dim3_label: {
+
+            }
+
+            if (s.length == 3) {
+                // 3rd dimension
+                let zF = 0;
+                for (let k = 0; k < dim3; k++ ){
+                    let m = mk({
+                        t: 'w',
+                        xL: xL, zF: zF, y: y,
+                        cx: dim1, cz: 1, cy: dim2,
+                        deps: deps,
+                        access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+                        dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+                        name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
+                    });
+                    zF -= (dim3 * dim3_cell + dim3_margin)
+                    cubes.push(m);
+                }
+
+                zF -= (dim3 * dim3_cell + dim3_margin)
+            }
+
+
+            xL += (s[0] * cell + margin);
+
+        } else {
+            let m = mk({
+                t: 'w',
+                xL: xL, zF: 0, y: y,
+                cx: s[0], cz: 1, cy: s[1],
+                deps: deps,
+                access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+                dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+                name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
+            });
+            xL += (s[0] * cell + margin);
+            cubes.push(m);
+        }
     }
 
 
     let embedLabel = mkLabel(y, cubes);
-
 
     for (let i = 0; i < cubes.length; i++) {
         cubes[i].idx = i;
