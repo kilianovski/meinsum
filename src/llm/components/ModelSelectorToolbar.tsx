@@ -1,5 +1,7 @@
 import React from 'react';
 import { useProgramState } from '../Sidebar';
+import {ShapeEditor} from '../ShapeEditor'
+import {IShapeDescription} from '../Program';
 // import { StringEditor } from "@/src/utils/Di";
 import { StringEditor } from './StringEditor';
 import clsx from 'clsx';
@@ -51,6 +53,23 @@ export const ModelSelectorToolbar: React.FC<{
         progState.markDirty()
     }
 
+    function handleShapesUpdate(shapes: any[]) {
+     
+
+        for (let i = 0; i < shapes.length; i++) {
+            if (shapes[i].list === null) return
+        }
+
+        const operands: IShapeDescription[] = shapes.map(s => ({
+            name: s.name,
+            shape: s.list,
+        }));
+
+        console.log('Viva Operands!', operands)
+        progState.inputs = operands;
+        progState.markDirty()
+    }
+
     function onMagnifyClick() {
         let example = progState.examples[progState.currExampleId] ?? progState.mainExample;
         let layout = example.layout ?? progState.layout;
@@ -78,11 +97,12 @@ export const ModelSelectorToolbar: React.FC<{
             {makeButton(-1)}
             {makeButton(1)} */}
             {/* {makeButton(2)} */}
-            {progState.inputs.map((input, i) => <div key={i}>
+            {/* {progState.inputs.map((input, i) => <div key={i}>
                 <p>{input.name}</p> <input value={input.shape} onChange={e => onShapeChanged(e, i)} />
-            </div>)}
+            </div>)} */}
 
-            <StringEditor value={progState.einstring} update={onEinstringUpdate} />
+            {/* <StringEditor value={progState.einstring} update={onEinstringUpdate} /> */}
+            <ShapeEditor onShapesUpdated={handleShapesUpdate}/>
 
         </div>
         <div className='ml-2 flex flex-row'>

@@ -385,11 +385,12 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
 
     // const shapes = [[3, 8, 3, 8], [3, 8], [4, 3, 6], [16, 8], [8, 8]];
-    const shapes = [
-        [2, 3, 2, 2, 2, 5, 8, 16],
-        [12, 40],
-        // [2, 3, 4, 5, 6],
-    ];
+    // const shapes = [
+    //     [2, 3, 2, 2, 2, 5, 8, 16],
+    //     [12, 40],
+    //     // [2, 3, 4, 5, 6],
+    // ];
+    const shapes = state.inputs || [{ shape: [2, 2] }]; // TODO
     let xL = 0;
     let zF = 0;
     let y = 0;
@@ -397,7 +398,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     let start_block_at = new Vec3();
 
     for (let i = 0; i < shapes.length; i++) {
-        const dims = shapes[i];
+        const dims = shapes[i].shape;
         let deps = null;
         if (i == shapes.length - 1) {
             const last_cube = cubes[cubes.length - 1]
@@ -406,9 +407,12 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             deps = { add: [[last_cube, 'xi'], [first_cube, 'ix']] };
         };
 
-        const kwargs = {
-            name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
+        let name = shapes[i].name;
+
+        if (!name) {
+            name = String.fromCharCode(65 + i) // 'A', 'B', 'C', ...
         }
+
         const block = generateTensor(dims, start_block_at);
 
         const blockCubes = block.cubes.map(c => cubes.push(mk({
@@ -418,7 +422,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             // deps: deps,
             access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
             dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-            name: kwargs.name,
+            name,
         })));
 
         start_block_at = block.blockDescription.frontUpRight.add(new Vec3(10));

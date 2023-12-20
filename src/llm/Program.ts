@@ -24,8 +24,12 @@ import { ILayout } from "../utils/layout";
 import { DimStyle } from "./walkthrough/WalkthroughTools";
 import { Subscriptions } from "../utils/hooks";
 
+export interface IShapeDescription {
+    name: string,
+    shape: number[]
+}
 export interface IProgramState {
-    inputs: [],
+    inputs: IShapeDescription[],
     einstring: string,
     native: NativeFunctions | null;
     wasmGptModel: IWasmGptModel | null;
@@ -146,8 +150,8 @@ export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFo
     let delta = new Vec3(10000, 0, 0);
 
     let inputs = [
-        {name: 'A', shape: '3,2'},
-        {name: 'B', shape: '2,3'},
+        { name: 'A', shape: '3,2' },
+        { name: 'B', shape: '2,3' },
     ]
 
     let einstring = 'ik,jk->ij';
@@ -212,7 +216,7 @@ export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFo
             target: [0, 0],
             depth: 1,
             cameraLerp: null,
-         },
+        },
         display: {
             tokenColors: null,
             tokenIdxColors: null,
