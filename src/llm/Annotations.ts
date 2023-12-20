@@ -82,7 +82,7 @@ export function blockDimension(state: IProgramState, layout: IModelLayout, blk: 
     let vMid2 = base.withSetAt(vecId, mid + textPad);
 
     addLine(render.lineRender, thickness, color, vStart, vMid1, n);
-    addLine(render.lineRender, thickness, color, vEnd  , vMid2, n);
+    addLine(render.lineRender, thickness, color, vEnd, vMid2, n);
     addLine(render.lineRender, thickness, color, vStart.withAddAt(offVecId, edgeH2), vStart.withAddAt(offVecId, -edgeH2), n);
     addLine(render.lineRender, thickness, color, vEnd.withAddAt(offVecId, edgeH2), vEnd.withAddAt(offVecId, -edgeH2), n);
 }
@@ -215,13 +215,13 @@ export function splitGrid(layout: IModelLayout, blk: IBlkDef, dim: Dim, xSplit: 
         let addMidBlockAfter = fract - scale > 0.0;
         let offset = lerpSmoothstep(-splitAmt, 0, (xSplit - 0.5) * scale + 0.5);
 
-        addSubBlockLocal(0     , colX - (addMidBlockBefore ? 1 : 0), offset + 0.0);
+        addSubBlockLocal(0, colX - (addMidBlockBefore ? 1 : 0), offset + 0.0);
 
         if (addMidBlockBefore) {
-            addSubBlockLocal(colX - 1, colX    , offset + lerpSmoothstep(splitAmt, 0, fract + scale));
+            addSubBlockLocal(colX - 1, colX, offset + lerpSmoothstep(splitAmt, 0, fract + scale));
         }
 
-        midBlock = addSubBlockLocal(colX    , colX + 1, offset + lerpSmoothstep(splitAmt, 0, fract));
+        midBlock = addSubBlockLocal(colX, colX + 1, offset + lerpSmoothstep(splitAmt, 0, fract));
 
         if (addMidBlockAfter) {
             addSubBlockLocal(colX + 1, colX + 2, offset + lerpSmoothstep(splitAmt, 0, fract - scale));
@@ -254,13 +254,14 @@ function addSubBlock(layout: IModelLayout, blk: IBlkDef, dim: Dim, iStart: numbe
     if (iStart >= iEnd || iEnd <= 0 || iStart >= sizeX) {
         return null;
     }
-
+    // iEnd = iStart + 1;
     let scale = (iEnd - iStart) / sizeX;
     let translate = iStart / sizeX;
 
-    let mtx = Mat4f.fromScaleTranslation(new Vec3(1,1,1).setAt(vecId, scale), new Vec3().setAt(vecId, translate));
+    let mtx = Mat4f.fromScaleTranslation(new Vec3(1, 1, 1).setAt(vecId, scale), new Vec3().setAt(vecId, translate));
 
-    let subBlock: IBlkDef = { ...blk,
+    let subBlock: IBlkDef = {
+        ...blk,
         [dxName]: (iEnd - iStart) * layout.cell,
         // [cxName]: iEnd - iStart,
         access: blk.access && { ...blk.access },
@@ -269,6 +270,7 @@ function addSubBlock(layout: IModelLayout, blk: IBlkDef, dim: Dim, iStart: numbe
         [offXName]: iStart + offX,
         [sizeXName]: iEnd - iStart,
     };
+    console.log('I am the new subBlock!', subBlock)
     return { subBlock, rangeOffset: [iEnd, xOffset] };
 }
 

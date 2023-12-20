@@ -1,4 +1,4 @@
-import { blockDimension, dimProps, findSubBlocks, splitGrid, splitGridForHighlight } from "./Annotations";
+import { blockDimension, dimProps, findSubBlocks, splitGrid, splitGridAll, splitGridForHighlight } from "./Annotations";
 import { drawDataFlow, getBlockValueAtIdx } from "./components/DataFlow";
 import { BlKDepSpecial, IBlkCellDep, IBlkDef } from "./GptModelLayout";
 import { IProgramState } from "./Program";
@@ -74,9 +74,9 @@ export function runMouseHitTesting(state: IProgramState) {
         let pt = worldA.add(dir.mul(minT));
 
         let pt2 = new Vec3(
-            clamp((pt.x - tl.x) / c.dx, 0, 1 - 0.1/c.cx),
-            clamp((pt.y - tl.y) / c.dy, 0, 1 - 0.1/c.cy),
-            clamp((pt.z - tl.z) / c.dz, 0, 1 - 0.1/c.cz));
+            clamp((pt.x - tl.x) / c.dx, 0, 1 - 0.1 / c.cx),
+            clamp((pt.y - tl.y) / c.dy, 0, 1 - 0.1 / c.cy),
+            clamp((pt.z - tl.z) / c.dz, 0, 1 - 0.1 / c.cz));
 
         let pt3 = c.localMtx ? c.localMtx.mulVec3Proj(pt2) : pt2;
 
@@ -210,7 +210,6 @@ export function drawDependences(state: IProgramState, blk: IBlkDef, idx: Vec3) {
             if (dep.src.deps?.lowerTri) {
                 dotLen = dotLen ?? srcIdx.getAt(dotDim);
             }
-
             let sub = splitGridForHighlight(layout, dep.src, dotDim, srcIdx.getAt(dotDim));
 
             if (sub && isNotNil(dotLen)) {
@@ -220,8 +219,10 @@ export function drawDependences(state: IProgramState, blk: IBlkDef, idx: Vec3) {
                     parts.highlight = 0.5;
                 }
             } else {
-
-                if (sub) sub.highlight = 0.5;
+                console.log('BEFORE', blk.subs?.length)
+                splitGridAll(layout, blk, Dim.X)
+                console.log('AFtER', blk.subs?.length)
+                if (sub) sub.highlight = 1.5;
             }
         } else {
             let sub = splitGridForHighlight(layout, dep.src, Dim.X, srcIdx.x);
@@ -238,7 +239,7 @@ export function drawDependences(state: IProgramState, blk: IBlkDef, idx: Vec3) {
         // let i = 0;
         for (let dep of deps.dot) {
             // if (i > 0) {
-                drawDep(dep, idx, dotLen);
+            drawDep(dep, idx, dotLen);
             // }
             // i++;
         }

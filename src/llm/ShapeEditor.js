@@ -35,6 +35,8 @@ export const ShapeEditor = ({onShapesUpdated}) => {
     // if (!onShapesUpdated) onShapesUpdated = () => {};
     const [shapes, setShapes] = useState([
         { name: 'A', shape: initialShapeString, list: parseShape(initialShapeString)},
+        { name: 'B', shape: initialShapeString, list: parseShape(initialShapeString)},
+        { name: 'C', shape: initialShapeString, list: parseShape(initialShapeString)},
         // Add default shapes here
     ]);
 

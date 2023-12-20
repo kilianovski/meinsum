@@ -65,7 +65,7 @@ export const ModelSelectorToolbar: React.FC<{
             shape: s.list,
         }));
 
-        console.log('Viva Operands!', operands)
+        // console.log('Viva Operands!', operands)
         progState.inputs = operands;
         progState.markDirty()
     }

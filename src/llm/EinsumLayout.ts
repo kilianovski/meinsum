@@ -404,7 +404,10 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             const last_cube = cubes[cubes.length - 1]
             const first_cube = cubes[0]
 
-            deps = { add: [[last_cube, 'xi'], [first_cube, 'ix']] };
+            deps = {
+                // dot: [[last_cube, 'yi'], [first_cube, 'xi']], 
+                add: [[last_cube, 'yi'], [first_cube, 'xi']]
+            };
         };
 
         let name = shapes[i].name;
@@ -419,7 +422,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             t: 'w',
             xL: c.coords.x, zF: c.coords.z, y: c.coords.y,
             cx: c.cx, cz: 1, cy: c.cy,
-            // deps: deps,
+            deps: deps,
             access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
             dimX: DimStyle.n_vocab, dimY: DimStyle.C,
             name,
