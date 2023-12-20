@@ -177,6 +177,125 @@ export interface IModelLayout {
     cubes: IBlkDef[];
 }
 
+
+interface IBlockDescription {
+    frontUpLeft: Vec3,
+    frontDownLeft: Vec3,
+    frontUpRight: Vec3,
+    rearUpLeft: Vec3
+}
+
+interface ICubeDescription {
+    coords: Vec3,
+    cx: number,
+    cy: number
+}
+
+interface ITensorBlock {
+    cubes: ICubeDescription[],
+    blockDescription: IBlockDescription
+}
+
+function get_pad_lvl(n_dims: number): number {
+    //     3 -> 0
+    // 4,5,6 -> 1
+    // 7,8,9 -> 2
+    // ...
+    return Math.ceil(n_dims / 3) - 1
+}
+
+let cell = 1.5;
+let margin = 10;
+let pad_lvl0 = 5;
+let pad_multiplier = 3; // pad at lvl n = pad_lvl0*pad_multiplier^n
+
+
+function generateTensor(dims: number[], start: Vec3 = new Vec3(),): ITensorBlock {
+    const n_dims = dims.length;
+
+    if (n_dims == 0) return generateTensor([1, 1], start);
+    if (n_dims == 1) return generateTensor([dims[0], 1], start);
+
+    if (n_dims == 2) {
+        const [M, N] = dims;
+
+        const cubes = [{
+            coords: start,
+            cy: M,
+            cx: N,
+        }];
+
+        const blockDescription = {
+            frontUpLeft: start,
+            frontDownLeft: start.add(new Vec3(0, M)),
+            frontUpRight: start.add(new Vec3(N)),
+            rearUpLeft: start.add(new Vec3(0, 0, -1))
+        }
+        return {
+            cubes,
+            blockDescription,
+        }
+    }
+
+    // recursive step
+    const dimN = dims[0];
+    const dimsNminusOne = dims.slice(1);
+
+    let cubes: any[] = [];
+
+    let blockStart = start.clone();
+
+    // do padding;
+    /*
+    we have axis rotation: 
+        - 3rd dim along z axis | pad_lvl 0
+        * UPGRADE padding..
+        - 4th dim along y axis | pad_lvl 1
+        - 5th dim along x axis | pad_lvl 1
+        - 6th dim along z axis | pad_lvl 1
+        * UPGRADE padding..
+        - 7th dim along y axis | pad_lvl 2
+        ...
+    */
+
+
+    const pad_lvl = get_pad_lvl(n_dims);
+    const pad = pad_lvl0 * Math.pow(pad_multiplier, pad_lvl);
+
+    let ourBlockDescr: IBlockDescription = null;
+
+    for (let q = 0; q < dimN; q++) {
+        const block = generateTensor(dimsNminusOne, blockStart);
+        cubes = cubes.concat(block.cubes);
+
+        const d = block.blockDescription;
+
+        if (q == 0) ourBlockDescr = d;
+
+        if (n_dims % 3 == 0) {
+            // move z
+            blockStart = d.rearUpLeft.add(new Vec3(0, 0, -pad));
+            ourBlockDescr.rearUpLeft = d.rearUpLeft;
+        } else if (n_dims % 3 == 2) {
+            // move along x axis
+            blockStart = d.frontUpRight.add(new Vec3(pad));
+            ourBlockDescr.frontUpRight = d.frontUpRight;
+        } else {
+            // move y ax
+            blockStart = d.frontDownLeft.add(new Vec3(0, pad));
+            ourBlockDescr.frontDownLeft = d.frontDownLeft;
+        }
+
+    }
+
+    return {
+        cubes,
+        blockDescription: ourBlockDescr,
+    }
+
+}
+
+
 export function cellPosition(layout: IModelLayout, blk: IBlkDef, dim: Dim, index: number) {
     let { x, rangeOffsets } = dimProps(blk, dim);
     let base = x + layout.cell * index;
@@ -207,15 +326,6 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     // weights & off-residual pathways are left & right of the residual pathway (i.e. along x)
     // those blocks might have y-depth but that's OK: still have space to add batches
     // x = 0 is just to the left of time-cell t=0
-
-
-    let y = 0;
-
-    let cell = 1.5;
-    let margin = Math.max(12, 10);
-    let dim3_margin = 3;
-    let dim3_cell = 0.1;
-
     function mk(args: IBlkDefArgs): IBlkDef {
         let xDef = [args.xL, args.xR, args.xM].map(a => +!isNil(a)).reduce((a, b) => a + b, 0);
         let yDef = [args.zF, args.zB, args.zM].map(a => +!isNil(a)).reduce((a, b) => a + b, 0);
@@ -267,39 +377,27 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
     let cubes: IBlkDef[] = [];
 
-
-    const inputs = [];
-
-    function parseShape(shape) {
-        if (Array.isArray(shape)) {
-            return shape;
-        } else if (typeof shape === 'string') {
-            return shape.split(',').map(Number);
-        }
-    }
-    // for (let i = 0; i < state.inputs.length; ++i) {
-    //     const {shape, name} = state.inputs[i];
-    //     const actualShape = parseShape(shape);
-    //     const cube = mk({
-    //         t: 'w',
-    //         xL: leftX + i*rightX, zM: 0, y: y,
-    //         cx: actualShape[0], cy: actualShape[1], cz: 1,
-    //         access: { src: gptGpuModel?.add.output, x: [0, 1, 0], y: [1, 0, T], scale: 10 },
-    //         dimX: DimStyle.T, dimY: DimStyle.C,
-    //         name: name,
-    //     })
-
-    //     inputs.push(cube)
-    //     cubes.push(cube);
-    // }
+    let cell = 1.5;
+    let margin = 10;
+    let pad_lvl0 = 3;
+    let pad_multiplier = 3; // pad at lvl n = pad_lvl0*pad_multiplier^n
+    let dim3_cell = 0.1;
 
 
-    // cubes.push(mC);
-    const shapes = [[3, 8, 3, 8], [3,8], [4, 3, 6], [16, 8], [8, 8]];
+    // const shapes = [[3, 8, 3, 8], [3, 8], [4, 3, 6], [16, 8], [8, 8]];
+    const shapes = [
+        [2, 3, 2, 2, 2, 5, 8, 16],
+        [12, 40],
+        // [2, 3, 4, 5, 6],
+    ];
     let xL = 0;
+    let zF = 0;
+    let y = 0;
+
+    let start_block_at = new Vec3();
 
     for (let i = 0; i < shapes.length; i++) {
-        const s = shapes[i];
+        const dims = shapes[i];
         let deps = null;
         if (i == shapes.length - 1) {
             const last_cube = cubes[cubes.length - 1]
@@ -308,78 +406,22 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             deps = { add: [[last_cube, 'xi'], [first_cube, 'ix']] };
         };
 
-        if (s.length > 2) {
-            const dim1 = s[s.length-1];
-            const dim2 = s[s.length-2];
-            const dim3 = s[s.length-3];
-            let zF = 0;
-
-            for (let m = s.length - 4; m >= 0; m--) {
-                const dimM = s[m];
-
-                for (let q = 0; q < dimM; q++) {
-                    
-                    // 3rd dimension
-                    
-                    for (let k = 0; k < dim3; k++ ){
-                        let m = mk({
-                            t: 'w',
-                            xL: xL, zF: zF, y: y,
-                            cx: dim1, cz: 1, cy: dim2,
-                            deps: deps,
-                            access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-                            dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-                            name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
-                        });
-                        zF -= (dim3 * dim3_cell + dim3_margin)
-                        cubes.push(m);
-                    }
-                    zF -= (10 * dim3 * dim3_cell + dim3_margin)
-                }
-
-            }
-
-
-            dim3_label: {
-
-            }
-
-            if (s.length == 3) {
-                // 3rd dimension
-                let zF = 0;
-                for (let k = 0; k < dim3; k++ ){
-                    let m = mk({
-                        t: 'w',
-                        xL: xL, zF: zF, y: y,
-                        cx: dim1, cz: 1, cy: dim2,
-                        deps: deps,
-                        access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-                        dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-                        name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
-                    });
-                    zF -= (dim3 * dim3_cell + dim3_margin)
-                    cubes.push(m);
-                }
-
-                zF -= (dim3 * dim3_cell + dim3_margin)
-            }
-
-
-            xL += (s[0] * cell + margin);
-
-        } else {
-            let m = mk({
-                t: 'w',
-                xL: xL, zF: 0, y: y,
-                cx: s[0], cz: 1, cy: s[1],
-                deps: deps,
-                access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-                dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-                name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
-            });
-            xL += (s[0] * cell + margin);
-            cubes.push(m);
+        const kwargs = {
+            name: String.fromCharCode(65 + i), // 'A', 'B', 'C', ...
         }
+        const block = generateTensor(dims, start_block_at);
+
+        const blockCubes = block.cubes.map(c => cubes.push(mk({
+            t: 'w',
+            xL: c.coords.x, zF: c.coords.z, y: c.coords.y,
+            cx: c.cx, cz: 1, cy: c.cy,
+            // deps: deps,
+            access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+            dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+            name: kwargs.name,
+        })));
+
+        start_block_at = block.blockDescription.frontUpRight.add(new Vec3(10));
     }
 
 
