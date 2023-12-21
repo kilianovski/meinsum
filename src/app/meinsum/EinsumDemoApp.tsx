@@ -1,13 +1,15 @@
 import React from 'react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import EinsumInputManager from './EinsumInputManager';
 import { IOperand, createOperand } from './OperandItem';
 import { buildRelationMap, MultidimArray } from '@/src/llm/meinsum';
+import {createPythonLoopString} from './MeinsumStringification';
 
 export const EinsumDemoApp = () => {
     const [operands, setOperands] = React.useState<IOperand[]>([
         createOperand('A', [8,8]),
         createOperand('B', [8,8]),
-        createOperand('R', [8,8]),
+        // createOperand('R', [8,8]),
     ]);
     const [equation, setEquation] = React.useState<string>('ik,jk->ij');
 
@@ -29,10 +31,21 @@ export const EinsumDemoApp = () => {
     // try {
 
     // }
-    const { relmap, freeDims, dim2size, summationDims } = buildRelationMap(equation, ...shapes);
-
-
-    const displayString = `${freeDims} of shape ${relmap.shape}`
+    const { relmap, freeDims, dim2size, summationDims, inputDims } = buildRelationMap(equation, ...shapes);
+    // function createPythonLoopString(
+    //     operandNames: string[],
+    //     inputDims: string[],
+    //     summationDims: string[],
+    //     freeDims: string[],
+    //     dim2size: any)
+    const operandNames = operands.map(op => op.name);
+    const displayPythonString = createPythonLoopString(
+        operandNames,
+        inputDims,
+        summationDims,
+        freeDims,
+        dim2size
+    );
     
     const handleOperandsChange = (newOperands: IOperand[]) => {
         setOperands(newOperands);
@@ -71,7 +84,9 @@ export const EinsumDemoApp = () => {
             onUpdateOperand={handleUpdateOperand}
         />
 
-        <h1>{displayString}</h1>
+<SyntaxHighlighter language="python">
+      {displayPythonString}
+    </SyntaxHighlighter>
 
         </>
     );

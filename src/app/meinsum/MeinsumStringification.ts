@@ -1,4 +1,4 @@
-function createPythonLoopString(
+export function createPythonLoopString(
   operandNames: string[],
   inputDims: string[],
   summationDims: string[],

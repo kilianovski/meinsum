@@ -21,7 +21,8 @@
         "next": "13.4.19",
         "npm": "10.2.5",
         "react": "18.2.0",
-        "react-dom": "18.2.0"
+        "react-dom": "18.2.0",
+        "react-syntax-highlighter": "15.5.0"
     },
     "devDependencies": {
         "@next/bundle-analyzer": "14.0.2",

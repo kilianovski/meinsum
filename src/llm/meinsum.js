@@ -1,4 +1,4 @@
-class MultidimArray {
+export class MultidimArray {
     constructor(shape) {
       this.shape = shape;
       this.array = this.initArray(shape);
@@ -68,8 +68,8 @@ class MultidimArray {
     return dims.map(name => globalCoords[name]);
   }
   
-//  export function buildRelationMap(equation, ...shapes) {
-function buildRelationMap(equation, ...shapes) {
+ export function buildRelationMap(equation, ...shapes) {
+// function buildRelationMap(equation, ...shapes) {
     
     if (!equation.includes('->')) {
       equation += '->';
@@ -120,7 +120,7 @@ function buildRelationMap(equation, ...shapes) {
       }
     });
   
-    return { relmap, freeDims, dim2size, summationDims };
+    return { relmap, freeDims, dim2size, summationDims, inputDims };
   }
   
   function sumRelmap(relmap, freeDims, dim2size, ...operands) {
