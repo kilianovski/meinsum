@@ -68,7 +68,8 @@ class MultidimArray {
     return dims.map(name => globalCoords[name]);
   }
   
-export function buildRelationMap(equation, ...shapes) {
+//  export function buildRelationMap(equation, ...shapes) {
+function buildRelationMap(equation, ...shapes) {
     
     if (!equation.includes('->')) {
       equation += '->';
@@ -119,7 +120,7 @@ export function buildRelationMap(equation, ...shapes) {
       }
     });
   
-    return { relmap, freeDims, dim2size };
+    return { relmap, freeDims, dim2size, summationDims };
   }
   
   function sumRelmap(relmap, freeDims, dim2size, ...operands) {
@@ -189,6 +190,8 @@ export function buildRelationMap(equation, ...shapes) {
 
 
 
+myEinsum('ij,kj->ij', [[1, 2, 3]], [[1], [2]]);
+
 
 const result1 = myEinsum('i->', [1, 2, 3]);
 assert(result1 == 6)
@@ -203,3 +206,5 @@ assertArraysEqual(result, [3, 8])
 
 result = myEinsum('i,j->i', [1, 2], [3, 4]);
 assertArraysEqual(result, [7, 14])
+
+

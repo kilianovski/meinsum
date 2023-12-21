@@ -1,19 +1,19 @@
 import React from 'react';
-import OperandItem, {Operand} from './OperandItem'; // Import the child component
+import OperandItem, {IOperand} from './OperandItem'; // Import the child component
 
 interface IEinsumEquation {
-    operands: Operand[],
+    operands: IOperand[],
     equation: string
 }
 
 interface EinsumInputManagerProps {
-    operands: Operand[],
+    operands: IOperand[],
     equation: string,
-    onOperandsChange: (operands: Operand[]) => void,
+    onOperandsChange: (operands: IOperand[]) => void,
     onEquationChange: (equation: string) => void,
     onAddOperand: () => void,
     onRemoveOperand: (index: number) => void,
-    onUpdateOperand: (index: number, updatedOperand: Operand) => void
+    onUpdateOperand: (index: number, updatedOperand: IOperand) => void
 }
 
 function EinsumInputManager({

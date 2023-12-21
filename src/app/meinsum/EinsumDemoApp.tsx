@@ -1,10 +1,10 @@
 import React from 'react';
 import EinsumInputManager from './EinsumInputManager';
-import { Operand, createOperand } from './OperandItem';
-import { buildRelationMap } from '@/src/llm/meinsum';
+import { IOperand, createOperand } from './OperandItem';
+import { buildRelationMap, MultidimArray } from '@/src/llm/meinsum';
 
 export const EinsumDemoApp = () => {
-    const [operands, setOperands] = React.useState<Operand[]>([
+    const [operands, setOperands] = React.useState<IOperand[]>([
         createOperand('A', [8,8]),
         createOperand('B', [8,8]),
         createOperand('R', [8,8]),
@@ -13,14 +13,28 @@ export const EinsumDemoApp = () => {
 
     const shapes = operands.map(op => op.shape)
 
+    function createNewOperand(){
+        const defaultShape = [8, 32];
+        let newName = 'Q'; // Fallback name
+        if (operands.length > 0) {
+            const lastOperandName = operands[operands.length - 1].name;
+            if (lastOperandName.length === 1) {
+                const lastCharCode = lastOperandName.charCodeAt(0);
+                newName = String.fromCharCode(lastCharCode + 1);
+            }
+        }
+        return createOperand(newName, defaultShape);
+    }
+
     // try {
 
     // }
-    const { relmap, freeDims, dim2size } = buildRelationMap(equation, ...shapes);
-    console.log({ relmap, freeDims, dim2size })
+    const { relmap, freeDims, dim2size, summationDims } = buildRelationMap(equation, ...shapes);
+
+
     const displayString = `${freeDims} of shape ${relmap.shape}`
     
-    const handleOperandsChange = (newOperands: Operand[]) => {
+    const handleOperandsChange = (newOperands: IOperand[]) => {
         setOperands(newOperands);
     };
 
@@ -29,7 +43,7 @@ export const EinsumDemoApp = () => {
     };
 
     const handleAddOperand = () => {
-        setOperands([...operands, { name: '', shape: [] }]);
+        setOperands([...operands, createNewOperand()]);
     };
 
     const handleRemoveOperand = (index: number) => {
@@ -37,7 +51,7 @@ export const EinsumDemoApp = () => {
         setOperands(newOperands);
     };
 
-    const handleUpdateOperand = (index: number, updatedOperand: Operand) => {
+    const handleUpdateOperand = (index: number, updatedOperand: IOperand) => {
         const newOperands = operands.map((operand, i) =>
             i === index ? updatedOperand : operand
         );

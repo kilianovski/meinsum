@@ -1,12 +1,12 @@
 import React from 'react';
 
-type Operand = {
-    name: string;
-    shape: number[] | null;
-    shapeString: string;
+export interface IOperand {
+    name: string,
+    shapeString: string
+    shape: number[] | null,
 }
 
-export function createOperand(name: string, shape:number[] ) : Operand{
+export function createOperand(name: string, shape:number[] ) : IOperand{
     return {name, shape, shapeString: JSON.stringify(shape)}
 }
 
@@ -36,8 +36,8 @@ function tryParseShape(shapeStr: string): number[] | null {
 
 
 interface OperandItemProps {
-    operand: Operand;
-    onUpdate: (operand: Operand) => void;
+    operand: IOperand;
+    onUpdate: (operand: IOperand) => void;
     onRemove: () => void;
 }
 

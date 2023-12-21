@@ -24,7 +24,7 @@ import { ILayout } from "../utils/layout";
 import { DimStyle } from "./walkthrough/WalkthroughTools";
 import { Subscriptions } from "../utils/hooks";
 
-export interface IShapeDescription {
+export interface IOperand {
     name: string,
     shape: number[]
 }
