@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 
 export interface IOperand {
     name: string,
@@ -12,7 +13,7 @@ export function createOperand(name: string, shape:number[] ) : IOperand{
 
 function tryParseShape(shapeStr: string): number[] | null {
     // Remove spaces and parentheses
-    shapeStr = shapeStr.replace(/\s|\(|\)/g, "");
+    shapeStr = shapeStr.replace(/\s|\(|\)|\[|\]/g, "");
 
     // Return null if the string is empty
     if (!shapeStr) return null;
@@ -55,7 +56,18 @@ const OperandItem: React.FC<OperandItemProps> = ({ operand, onUpdate, onRemove }
     const shapeInputStyle = operand.shape !== null
         ? {}
         : { color: 'red', borderWidth: '2px' };
+        const inputStyle = {
+            border: '1px solid #007bff', // A blue border
+            borderRadius: '2px',         // Rounded corners
+            padding: '4px 4px',         // Padding inside the input
+            margin: '1px 4px',             // Margin around the input
+            outline: 'none',             // Remove the default focus outline
+            boxShadow: 'inset 0 1px 1px rgba(0, 0, 0, 0.1)', // Inner shadow for depth
+            width: '100px', // Set width to 50% of the parent element's width
 
+            fontSize: '0.8rem',          // Smaller font size
+            transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out' // Smooth transition for focus
+        };
     return (
         <div>
         <input
@@ -63,16 +75,18 @@ const OperandItem: React.FC<OperandItemProps> = ({ operand, onUpdate, onRemove }
     value = { operand.name }
     onChange = { handleNameChange }
     placeholder = "Name"
+    style={inputStyle}
         />
         <input
                 type="text"
+        className=''
     value = { operand.shapeString }
     onChange = { handleShapeStringChange }
     placeholder = "Shape (e.g., 2,3)"
-    style = { shapeInputStyle }
-        />
-        <button onClick={ onRemove }> Remove </button>
-            </div>
+    style={{ ...inputStyle, ...shapeInputStyle }}
+    />
+        <button onClick={ onRemove }>❌ </button>
+        </div>
     );
 }
 

@@ -270,7 +270,7 @@ function addSubBlock(layout: IModelLayout, blk: IBlkDef, dim: Dim, iStart: numbe
         [offXName]: iStart + offX,
         [sizeXName]: iEnd - iStart,
     };
-    console.log('I am the new subBlock!', subBlock)
+    // console.log('I am the new subBlock!', subBlock)
     return { subBlock, rangeOffset: [iEnd, xOffset] };
 }
 

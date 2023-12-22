@@ -195,6 +195,8 @@ export function LayerView() {
     // </div>;
 
     let mainView = <div className={s.canvasWrap}>
+            
+
         <canvas
             className={s.canvas}
             ref={setCanvasEl}
@@ -205,6 +207,7 @@ export function LayerView() {
         </div>}
         {/* <div className={s.cursorFollow} style={{ top: pointPos.y, left: pointPos.x }} /> */}
         {canvasRender && <ProgramStateContext.Provider value={canvasRender.progState}>
+        x
             <CanvasEventSurface>
                 {/* <MovementControls /> */}
             </CanvasEventSurface>

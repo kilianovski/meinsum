@@ -32,7 +32,6 @@ function EinsumInputManager({
 
     return (
         <div>
-            {JSON.stringify(operands)}
             {operands.map((operand, index) => (
                 <OperandItem
                     key={index}
@@ -41,7 +40,10 @@ function EinsumInputManager({
                     onRemove={() => onRemoveOperand(index)}
                 />
             ))}
-            <button onClick={onAddOperand}>Add Operand</button>
+
+            <button onClick={onAddOperand} className="Commentary_btn__qpOgN  flex-[2] bg-blue-300 border border-blue-600 hover:bg-blue-400"  >
+                <div>Add Operand</div>
+            </button>
 
             <div>
                 <label>

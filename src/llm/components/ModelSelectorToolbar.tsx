@@ -1,7 +1,7 @@
 import React from 'react';
 import { useProgramState } from '../Sidebar';
 import {ShapeEditor} from '../ShapeEditor'
-import {IShapeDescription} from '../Program';
+import {IOperand, IOutput} from '../Program';
 // import { StringEditor } from "@/src/utils/Di";
 import { StringEditor } from './StringEditor';
 import clsx from 'clsx';
@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExpand, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { Vec3 } from '@/src/utils/vector';
 import { Mat4f } from '@/src/utils/matrix';
+import { EinsumDemoApp, IOutput as IViewOutput } from '@/src/app/meinsum/EinsumDemoApp';
 
 export const ModelSelectorToolbar: React.FC<{
 }> = () => {
@@ -53,21 +54,17 @@ export const ModelSelectorToolbar: React.FC<{
         progState.markDirty()
     }
 
-    function handleShapesUpdate(shapes: any[]) {
-     
-
-        for (let i = 0; i < shapes.length; i++) {
-            if (shapes[i].list === null) return
-        }
-
-        const operands: IShapeDescription[] = shapes.map(s => ({
-            name: s.name,
-            shape: s.list,
-        }));
-
+    function onOperandsChange(operands: IOperand[]) {
         // console.log('Viva Operands!', operands)
         progState.inputs = operands;
         progState.markDirty()
+    }
+
+    function onOutputChange(output: IOutput) {
+        progState.output = {...output};
+        // progState.inputs.push(output)
+        // console.log('output!!!', output)
+        // progState.markDirty()
     }
 
     function onMagnifyClick() {
@@ -102,8 +99,9 @@ export const ModelSelectorToolbar: React.FC<{
             </div>)} */}
 
             {/* <StringEditor value={progState.einstring} update={onEinstringUpdate} /> */}
-            <ShapeEditor onShapesUpdated={handleShapesUpdate}/>
-
+            {/* <ShapeEditor onShapesUpdated={handleShapesUpdate}/> */}
+            {/* <EinsumDemoApp /> */}
+            <EinsumDemoApp notifyOperandsChange={onOperandsChange} notifyOutputChange={onOutputChange} />
         </div>
         <div className='ml-2 flex flex-row'>
             <div className={clsx('m-2 p-2 bg-white min-w-[2rem] flex justify-center rounded shadow cursor-pointer hover:bg-blue-300')} onClick={onExpandClick}>

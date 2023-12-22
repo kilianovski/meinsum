@@ -5,7 +5,22 @@ import { IOperand, createOperand } from './OperandItem';
 import { buildRelationMap, MultidimArray } from '@/src/llm/meinsum';
 import {createPythonLoopString} from './MeinsumStringification';
 
-export const EinsumDemoApp = () => {
+
+export interface IOutput extends IOperand {
+    relmap: MultidimArray
+}
+interface EinsumDemoAppProps {
+    notifyOperandsChange: (operands: IOperand[]) => void,
+    notifyOutputChange: (output: IOutput) => void
+}
+export const EinsumDemoApp = ({
+    notifyOperandsChange,
+    notifyOutputChange,
+} : EinsumDemoAppProps) => {
+
+    if (!notifyOperandsChange) notifyOperandsChange = () => {}
+    if (!notifyOutputChange) notifyOutputChange = () => {}
+
     const [operands, setOperands] = React.useState<IOperand[]>([
         createOperand('A', [8,8]),
         createOperand('B', [8,8]),
@@ -27,25 +42,45 @@ export const EinsumDemoApp = () => {
         }
         return createOperand(newName, defaultShape);
     }
+    let relmap;
+    let displayPythonString = '';
+    try {
+        const relmapOutput = buildRelationMap(equation, ...shapes);
+        if (!relmapOutput.valid) {
+            displayPythonString = `raise ValueError("${relmapOutput.reason}")`;
+        } else {
+            const { freeDims, dim2size, summationDims, inputDims } = relmapOutput;
+            relmap = relmapOutput.relmap;
+            // function createPythonLoopString(
+            //     operandNames: string[],
+            //     inputDims: string[],
+            //     summationDims: string[],
+            //     freeDims: string[],
+            //     dim2size: any)
+            const operandNames = operands.map(op => op.name);
+            displayPythonString = createPythonLoopString(
+                operandNames,
+                inputDims,
+                summationDims,
+                freeDims,
+                dim2size
+            );
+        }
+    } catch (exception) {
+        displayPythonString = ''+exception
+    }
 
-    // try {
-
-    // }
-    const { relmap, freeDims, dim2size, summationDims, inputDims } = buildRelationMap(equation, ...shapes);
-    // function createPythonLoopString(
-    //     operandNames: string[],
-    //     inputDims: string[],
-    //     summationDims: string[],
-    //     freeDims: string[],
-    //     dim2size: any)
-    const operandNames = operands.map(op => op.name);
-    const displayPythonString = createPythonLoopString(
-        operandNames,
-        inputDims,
-        summationDims,
-        freeDims,
-        dim2size
-    );
+    function getOutputShape(){
+        if (relmap) {
+            return createOperand('R', relmap.shape)
+        }
+    }
+    
+    notifyOperandsChange(operands);
+    const output = getOutputShape();
+    if (output) {
+        notifyOutputChange(output)
+    }
     
     const handleOperandsChange = (newOperands: IOperand[]) => {
         setOperands(newOperands);

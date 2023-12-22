@@ -22,6 +22,7 @@ export interface IBlkDef {
     cz: number;
     access?: IBlkAccess;
     deps?: IBlkDeps;
+    meinsumResult?: IBlkMeinsumResult;
     dimX: DimStyle;
     dimY: DimStyle;
     name: string;
@@ -74,6 +75,10 @@ interface IBlkDepArgs {
     add?: [IBlkDef, string][];
     lowerTri?: boolean; // only use the lower triangle of the matrix (causal attention matrices)
     special?: BlKDepSpecial;
+}
+
+export interface IBlkMeinsumResult {
+    loopString: string | undefined
 }
 
 export enum BlKDepSpecial {
@@ -160,6 +165,7 @@ interface IBlkDefArgs {
     special?: BlkSpecial;
     access?: IBlkAccessDefArgs;
     deps?: IBlkDepArgs;
+    meinsumResult?: IBlkMeinsumResult;
     small?: boolean;
     hidden?: boolean;
     transpose?: boolean;
@@ -362,6 +368,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
                 mat: Mat4f.fromColMajor([...ensure4(args.access.x), ...ensure4(args.access.y), 0, 0, 0, 0, 0, 0, 0, 0]),
             } : undefined,
             deps: args.deps ? depArgsToDeps(args.deps) : undefined,
+            meinsumResult: args.meinsumResult,
             opacity: args.hidden ? 0.0 : 1.0,
             highlight: .0,
             small: args.small ?? false,
@@ -390,7 +397,11 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     //     [12, 40],
     //     // [2, 3, 4, 5, 6],
     // ];
-    const shapes = state.inputs || [{ shape: [2, 2] }]; // TODO
+    const shapes = state.inputs ? [...state.inputs] : [{ name: 'EMPTY', shape: [32, 32] }]; // TODO
+
+    if (state.output) {
+        shapes.push({ ...state.output })
+    }
     let xL = 0;
     let zF = 0;
     let y = 0;
@@ -399,15 +410,11 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
     for (let i = 0; i < shapes.length; i++) {
         const dims = shapes[i].shape;
-        let deps = null;
-        if (i == shapes.length - 1) {
+        let meinsumResult: (IBlkMeinsumResult | undefined) = undefined;
+        if (shapes.length > 1 && i == shapes.length - 1) {
             const last_cube = cubes[cubes.length - 1]
             const first_cube = cubes[0]
-
-            deps = {
-                // dot: [[last_cube, 'yi'], [first_cube, 'xi']], 
-                add: [[last_cube, 'yi'], [first_cube, 'xi']]
-            };
+            meinsumResult = { loopString: '3' }
         };
 
         let name = shapes[i].name;
@@ -422,15 +429,17 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
             t: 'w',
             xL: c.coords.x, zF: c.coords.z, y: c.coords.y,
             cx: c.cx, cz: 1, cy: c.cy,
-            deps: deps,
+            meinsumResult,
             access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
             dimX: DimStyle.n_vocab, dimY: DimStyle.C,
             name,
         })));
 
+
         start_block_at = block.blockDescription.frontUpRight.add(new Vec3(10));
     }
 
+    // console.log(cubes.map(cu => cu.meinsumResult))
 
     let embedLabel = mkLabel(y, cubes);
 

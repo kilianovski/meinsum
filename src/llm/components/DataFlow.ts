@@ -1,6 +1,7 @@
 import { text } from "stream/consumers";
 import { dimProps, TextAlignHoriz } from "../Annotations";
-import { BlKDepSpecial, BlkSpecial, cellPosition, IBlkCellDep, IBlkDef } from "../GptModelLayout";
+import { BlKDepSpecial, BlkSpecial, cellPosition, IBlkCellDep } from "../GptModelLayout";
+import { IBlkDef } from "../EinsumLayout";
 import { getDepDotLen, getDepSrcIdx } from "../Interaction";
 import { IProgramState } from "../Program";
 import { drawText, IFontOpts, measureText } from "../render/fontRender";
@@ -25,7 +26,7 @@ interface IDataFlowArgs {
 }
 
 export function drawDataFlow(state: IProgramState, blk: IBlkDef, destIdx: Vec3, pinIdx?: Vec3) {
-    if (!blk.deps) {
+    if (!blk.deps && !blk.meinsumResult) {
         return;
     }
     let prevPhase = state.render.sharedRender.activePhase;
@@ -54,6 +55,14 @@ export function drawDataFlow(state: IProgramState, blk: IBlkDef, destIdx: Vec3, 
     }
 
     let bb = new BoundingBox3d();
+
+
+    console.log('blk.meinsumResult', blk.meinsumResult)
+    if (blk.meinsumResult) {
+        drawMeinsum(dataFlowArgs);
+        return;
+
+    }
 
     if (blk.deps.lowerTri && destIdx.x > destIdx.y) {
         drawZeroSymbol(dataFlowArgs);
@@ -85,13 +94,14 @@ export function drawDataFlow(state: IProgramState, blk: IBlkDef, destIdx: Vec3, 
     } else if (blk.deps.special === BlKDepSpecial.Gelu) {
         bb = drawGeluActivation(dataFlowArgs);
 
-    // Standard ones
+        // Standard ones
     } else if (blk.deps.dot) {
         bb = drawOLMatrixMul(dataFlowArgs);
 
     } else if (blk.deps.add && blk.deps.add.length === 2) {
         bb = drawResidualAdd(dataFlowArgs);
     }
+
 
     if (!bb.empty) {
         let cellIdxBb = drawCellIndexAndValue(dataFlowArgs, bb);
@@ -222,10 +232,10 @@ export function drawOLIndexLookup(args: IDataFlowArgs, offset: Vec3) {
     addQuad(state.render.triRender, tl, br, backWhiteColor, mtx);
 
     let colW = 8;
-    let colTl = new Vec3(tl.x + lerp(0, br.x-tl.x-colW, tokenPct), tl.y);
+    let colTl = new Vec3(tl.x + lerp(0, br.x - tl.x - colW, tokenPct), tl.y);
     let colBr = new Vec3(colTl.x + colW, br.y);
 
-    let cellTl = new Vec3(colTl.x, colTl.y + lerp(0, br.y-tl.y-colW, heightPct));
+    let cellTl = new Vec3(colTl.x, colTl.y + lerp(0, br.y - tl.y - colW, heightPct));
     let cellBr = new Vec3(colBr.x, cellTl.y + colW);
 
     addQuad(state.render.triRender, colTl, colBr, color.mul(0.3), mtx);
@@ -266,16 +276,16 @@ export function drawOLPosEmbedLookup(args: IDataFlowArgs, offset: Vec3) {
     addQuad(state.render.triRender, tl, br, backWhiteColor, mtx);
 
     let colW = 8;
-    let colTl = new Vec3(tl.x + lerp(0, br.x-tl.x-colW, posPct), tl.y);
+    let colTl = new Vec3(tl.x + lerp(0, br.x - tl.x - colW, posPct), tl.y);
     let colBr = new Vec3(colTl.x + colW, br.y);
 
-    let cellTl = new Vec3(colTl.x, colTl.y + lerp(0, br.y-tl.y-colW, heightPct));
+    let cellTl = new Vec3(colTl.x, colTl.y + lerp(0, br.y - tl.y - colW, heightPct));
     let cellBr = new Vec3(colBr.x, cellTl.y + colW);
 
     addQuad(state.render.triRender, colTl, colBr, color.mul(0.3), mtx);
     addQuad(state.render.triRender, cellTl, cellBr, color, mtx);
 
-    let textOpts: IFontOpts = { color: new Vec4(1,1,1,1).mul(0.8), mtx, size: 20 };
+    let textOpts: IFontOpts = { color: new Vec4(1, 1, 1, 1).mul(0.8), mtx, size: 20 };
     let tw = measureText(state.render.modelFontBuf, 't', textOpts);
 
     drawText(state.render.modelFontBuf, 't', (cellTl.x + cellBr.x) / 2 - tw / 2, colTl.y - 3 - textOpts.size, textOpts);
@@ -296,7 +306,7 @@ export function drawOLMatrixMul(args: IDataFlowArgs) {
             cellX: isRow ? 4 : 1,
             cellY: isRow ? 1 : 4,
             color: dep.src.t === 'w' ? weightSrcColor : workingSrcColor,
-         };
+        };
     }
 
     let textBlock = mkTextBlock({
@@ -424,12 +434,14 @@ function drawLayerNormSigmaAgg(args: IDataFlowArgs) {
         subs: [{
             type: TextBlockType.Sqrt,
             subs: [
-                { type: TextBlockType.Line, subs: [
-                    { text: 'Var[', color: workingSrcColor },
-                    { cellX: 1, cellY: 3, color: workingSrcColor },
-                    { text: ']', color: workingSrcColor },
-                    { text: ' + ε' },
-                ]},
+                {
+                    type: TextBlockType.Line, subs: [
+                        { text: 'Var[', color: workingSrcColor },
+                        { cellX: 1, cellY: 3, color: workingSrcColor },
+                        { text: ']', color: workingSrcColor },
+                        { text: ' + ε' },
+                    ]
+                },
             ],
         }],
     });
@@ -446,7 +458,8 @@ function drawLayerNorm(args: IDataFlowArgs) {
         subs: [{
             type: TextBlockType.Divide,
             subs: [
-                { subs: [
+                {
+                    subs: [
                         { cellX: 1, cellY: 1, color: workingSrcColor },
                         { text: ' \— ' },
                         {
@@ -466,20 +479,22 @@ function drawLayerNorm(args: IDataFlowArgs) {
                     subs: [{
                         type: TextBlockType.Sqrt,
                         subs: [
-                            { type: TextBlockType.Line, subs: [
-                                { text: 'Var[', color: workingSrcColor },
-                                { cellX: 1, cellY: 3, color: workingSrcColor },
-                                { text: ']', color: workingSrcColor },
-                                { text: ' + ε' },
-                            ]},
+                            {
+                                type: TextBlockType.Line, subs: [
+                                    { text: 'Var[', color: workingSrcColor },
+                                    { cellX: 1, cellY: 3, color: workingSrcColor },
+                                    { text: ']', color: workingSrcColor },
+                                    { text: ' + ε' },
+                                ]
+                            },
                         ],
                     }],
                 }]
-            },
-            { text: '  ‧ ' },
-            { text: 'γ', color: weightSrcColor },
-            { text: ' + ' },
-            { text: 'β', color: weightSrcColor },
+        },
+        { text: '  ‧ ' },
+        { text: 'γ', color: weightSrcColor },
+        { text: ' + ' },
+        { text: 'β', color: weightSrcColor },
         ],
     });
 
@@ -532,6 +547,22 @@ function drawSoftmaxAggMax(args: IDataFlowArgs) {
     return drawMaths(args, center, textBlock);
 }
 
+function drawMeinsum(args: IDataFlowArgs) {
+    let { center, mtx } = args;
+    const testText = `
+    let fontOpts: IFontOpts = { color: opColor, mtx, size: 16 };
+    `
+    let fontOpts: IFontOpts = { color: opColor, mtx, size: 16 };
+    const textBlock = mkTextBlock({
+        opts: fontOpts,
+        subs: [
+            { text: testText },
+            { text: testText },
+            { text: testText },
+        ]
+    })
+    // return drawMaths(args, center, textBlock);
+}
 function drawSoftmaxAggExp(args: IDataFlowArgs) {
     let { center, mtx } = args;
     let fontOpts: IFontOpts = { color: opColor, mtx, size: 16 };
@@ -620,7 +651,7 @@ export function drawAttention(args: IDataFlowArgs) {
             cellX: isRow ? 4 : 1,
             cellY: isRow ? 1 : 4,
             color: dep.src.t === 'w' ? weightSrcColor : workingSrcColor,
-         };
+        };
     }
 
     let textBlock = mkTextBlock({
@@ -687,7 +718,7 @@ export function drawGeluActivation(args: IDataFlowArgs) {
         pts[i * 3 + 1] = mappingY(y);
     }
 
-    let axisLineOpts = makeLineOpts({ color: new Vec4(0.5,0.5,0.5,1), mtx, thick: 1.5 });
+    let axisLineOpts = makeLineOpts({ color: new Vec4(0.5, 0.5, 0.5, 1), mtx, thick: 1.5 });
     addLine2(state.render.lineRender, new Vec3(tl.x, mappingY(0)), new Vec3(br.x, mappingY(0)), axisLineOpts);
     addLine2(state.render.lineRender, new Vec3(mappingX(0), tl.y), new Vec3(mappingX(0), br.y), axisLineOpts);
 
@@ -743,7 +774,7 @@ function drawCellIndexAndValue(args: IDataFlowArgs, bb: BoundingBox3d): Bounding
     let padY = 4;
 
     sizeBlock(args.state.render, textBlock);
-    textBlock.offset = new Vec3(args.center.x - textBlock.size.x/2, bb.min.y - fontOpts.size * 1.2 - padX, 0);
+    textBlock.offset = new Vec3(args.center.x - textBlock.size.x / 2, bb.min.y - fontOpts.size * 1.2 - padX, 0);
     layoutBlock(textBlock);
 
     let tl = textBlock.offset.sub(new Vec3(padX, padY));
@@ -786,7 +817,7 @@ function drawDepArrows(args: IDataFlowArgs, bb: BoundingBox3d) {
     }
 
     function drawFinalArrow() {
-        drawArrow(blk, destIdx, new Vec4(0,0,0,1), true);
+        drawArrow(blk, destIdx, new Vec4(0, 0, 0, 1), true);
     }
 
     function drawArrow(blk: IBlkDef, idx: Vec3, color: Vec4, reverse?: boolean) {
@@ -798,7 +829,7 @@ function drawDepArrows(args: IDataFlowArgs, bb: BoundingBox3d) {
 
         // let's just draw a straight line for now
 
-        let lineOpts = makeLineOpts({ n: new Vec3(0,0,1), color, mtx, thick: 0.5, dash: 10 });
+        let lineOpts = makeLineOpts({ n: new Vec3(0, 0, 1), color, mtx, thick: 0.5, dash: 10 });
 
         let source = projectToScreen(state, cellPos);
 
@@ -854,7 +885,7 @@ function drawDepArrows(args: IDataFlowArgs, bb: BoundingBox3d) {
 
 function drawArc(state: IProgramState, a: Vec3, b: Vec3, color: Vec4, mtx: Mat4f, thick: number) {
     let dir = b.sub(a).normalize();
-    let bisect = Vec3.cross(dir, new Vec3(0,0,1)).normalize();
+    let bisect = Vec3.cross(dir, new Vec3(0, 0, 1)).normalize();
     let center = a.lerp(b, 0.5).add(bisect.mul(a.dist(b) * -2.0));
 
     let radius = a.dist(center);
@@ -886,8 +917,8 @@ function drawArc(state: IProgramState, a: Vec3, b: Vec3, color: Vec4, mtx: Mat4f
 
     let tangent = new Vec3(Math.sin(endAngle), -Math.cos(endAngle));
 
-    let dirA = tangent.rotateAbout(new Vec3(0,0,1), -Math.PI * 0.25);
-    let dirB = tangent.rotateAbout(new Vec3(0,0,1), Math.PI * 0.25);
+    let dirA = tangent.rotateAbout(new Vec3(0, 0, 1), -Math.PI * 0.25);
+    let dirB = tangent.rotateAbout(new Vec3(0, 0, 1), Math.PI * 0.25);
 
     let arrowLen = 10;
     addLine2(state.render.lineRender, b, b.mulAdd(dirA, arrowLen), lineOpts);

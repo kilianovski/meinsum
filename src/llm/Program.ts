@@ -28,9 +28,15 @@ export interface IOperand {
     name: string,
     shape: number[]
 }
+
+export interface IOutput {
+    name: string,
+    shape: number[],
+    relmap: any[]
+}
 export interface IProgramState {
-    inputs: IShapeDescription[],
-    einstring: string,
+    inputs: IOperand[] | undefined,
+    output: IOutput | undefined,
     native: NativeFunctions | null;
     wasmGptModel: IWasmGptModel | null;
     stepModel: boolean;

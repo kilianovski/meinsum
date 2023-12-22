@@ -122,16 +122,8 @@ export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFo
 
     let delta = new Vec3(10000, 0, 0);
 
-    let inputs = [
-        { name: 'A', shape: '3,2' },
-        { name: 'B', shape: '2,3' },
-    ]
-
-    let einstring = 'ik,jk->ij';
 
     return {
-        inputs,
-        einstring,
         native: null,
         wasmGptModel: null,
         render: render!,
@@ -212,7 +204,7 @@ export function initCamera(state: IProgramState) {
     const cubes = state.layout.cubes;
 
     let obj = cubes[cubes.length - 1];
-    console.log(cubes)
+    // console.log(cubes)
     let modelTarget = new Vec3(obj.x, obj.y, obj.z);
     let modelMtx = state.camera.modelMtx.mul(Mat4f.fromTranslation(state.mainExample.offset))
 

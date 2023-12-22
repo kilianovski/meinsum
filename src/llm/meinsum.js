@@ -1,3 +1,4 @@
+// class MultidimArray {
 export class MultidimArray {
     constructor(shape) {
       this.shape = shape;
@@ -67,19 +68,64 @@ export class MultidimArray {
     const globalCoords = Object.fromEntries(dimNames.map((name, i) => [name, idx[i]]));
     return dims.map(name => globalCoords[name]);
   }
-  
- export function buildRelationMap(equation, ...shapes) {
+
+
+
+export function buildRelationMap(equation, ...shapes) {
 // function buildRelationMap(equation, ...shapes) {
-    
+  // Check if the equation is a string
+    if (typeof equation !== 'string') {
+      return { valid: false, reason: 'Equation must be a string.' };
+    }
+
+    if (!Array.isArray(shapes)) {
+      return { valid: false, reason: 'Shapes should be an array' };
+    }
+
     if (!equation.includes('->')) {
       equation += '->';
     }
+
   
     const [inputs, outputs] = equation.split('->');
     const inputDims = inputs.split(',');
     const outputDims = outputs.split(',');
     const outputDim = outputDims[0];
-  
+   // Check if the number of input dimensions matches the number of provided shapes
+   if (inputDims.length !== shapes.length) {
+    return { valid: false, reason: 'Number of input dimensions does not match the number of provided shapes.' };
+  }
+
+  // Check if each input shape matches its corresponding subscript
+  for (let i = 0; i < shapes.length; i++) {
+    if (inputDims[i].length !== shapes[i].length) {
+      return { valid: false, reason: `Shape at index ${i} does not match its corresponding subscript.` };
+    }
+  }
+
+  // Check for repeated subscripts in the output
+  const uniqueOutputDims = [...new Set(outputDims.join(''))];
+  if (uniqueOutputDims.length !== outputDims.join('').length) {
+    return { valid: false, reason: 'Repeated subscripts in the output are not allowed.' };
+  }
+
+  // Check if all output subscripts appear in the input
+  for (let i = 0; i < uniqueOutputDims.length; i++) {
+
+        const dim = uniqueOutputDims[i]
+        
+        let includes = false;
+
+        for (let inputD of inputDims) {
+          if (inputD.includes(dim)){
+            includes = true;
+          }
+        }
+        if (!includes) {
+          return { valid: false, reason: `Output subscript '${dim}' does not appear in the input.` };
+        }
+
+    }
     const dim2size = {};
   
     inputDims.forEach((dims, i) => {
@@ -87,6 +133,37 @@ export class MultidimArray {
         dim2size[dim] = shapes[i][j];
       });
     });
+
+    const dimsOfEachOp = {};
+
+    for (let i = 0; i < shapes.length; i++) {
+      const shape = shapes[i];
+      for (let j = 0; j < shape.length; j++) {
+        const dim = inputDims[i][j];
+        const info = {opi: i, size: shape[j]};
+        if (dim in dimsOfEachOp){
+          dimsOfEachOp[dim].push(info)
+        } else{
+          dimsOfEachOp[dim] = [info]
+        }
+      }
+    }
+
+
+    for (const dim in dimsOfEachOp) {
+      const opsInfo = dimsOfEachOp[dim];
+      const trueSize = opsInfo[0].size;
+
+      for (let i = 0; i < opsInfo.length; i++) {
+        const opInfo = opsInfo[i];
+        if (opInfo.size != trueSize) {
+          return { 
+            valid: false, 
+            reason: `Dimension '${dim}' has mismatched sizes across operands. operands[0].shape=${trueSize} while operands[${opInfo.opi}].shape=${opInfo.size}` };
+        }
+      }
+
+    }
   
     const freeDims = outputDim.split('');
     const summationDims = [...new Set([].concat(...inputDims.map(dim => dim.split(''))))].filter(d => !freeDims.includes(d));
@@ -120,7 +197,7 @@ export class MultidimArray {
       }
     });
   
-    return { relmap, freeDims, dim2size, summationDims, inputDims };
+    return { valid: true, relmap, freeDims, dim2size, summationDims, inputDims };
   }
   
   function sumRelmap(relmap, freeDims, dim2size, ...operands) {
@@ -157,7 +234,12 @@ export class MultidimArray {
   function myEinsum(equation, ...operands) {
     operands = operands.map(op => op instanceof MultidimArray ? op : MultidimArray.fromArray(op));
     const shapes = operands.map(o => o.shape);
-    const { relmap, freeDims, dim2size } = buildRelationMap(equation, ...shapes);
+    const output = buildRelationMap(equation, ...shapes);
+    if (!output.valid) {
+      throw new Error(output);
+    }
+
+    const { relmap, freeDims, dim2size } = output;
     let R = sumRelmap(relmap, freeDims, dim2size, ...operands);
     return R;
   }
@@ -190,7 +272,7 @@ export class MultidimArray {
 
 
 
-myEinsum('ij,kj->ij', [[1, 2, 3]], [[1], [2]]);
+myEinsum('ij,kj->ij', [[1, 2, 3]], [[1,2,3], [1,2,3]]);
 
 
 const result1 = myEinsum('i->', [1, 2, 3]);
