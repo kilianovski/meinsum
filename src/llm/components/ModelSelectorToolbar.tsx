@@ -47,19 +47,6 @@ export const ModelSelectorToolbar: React.FC<{
         // progState.markDirty();
     }
 
-    function onShapeChanged(e, i) {
-        const shape = e.target.value;
-
-        progState.inputs[i].shape = shape
-        progState.markDirty()
-    }
-
-    function onOperandsChange(operands: IOperand[]) {
-        // console.log('Viva Operands!', operands)
-        progState.inputs = operands;
-        progState.markDirty()
-    }
-
     function onOutputChange(output: IOutput) {
         progState.output = {...output};
         // progState.inputs.push(output)
@@ -101,7 +88,7 @@ export const ModelSelectorToolbar: React.FC<{
             {/* <StringEditor value={progState.einstring} update={onEinstringUpdate} /> */}
             {/* <ShapeEditor onShapesUpdated={handleShapesUpdate}/> */}
             {/* <EinsumDemoApp /> */}
-            <EinsumDemoApp notifyOperandsChange={onOperandsChange} notifyOutputChange={onOutputChange} />
+            {/* <EinsumDemoApp notifyOperandsChange={onOperandsChange} notifyOutputChange={onOutputChange} /> */}
         </div>
         <div className='ml-2 flex flex-row'>
             <div className={clsx('m-2 p-2 bg-white min-w-[2rem] flex justify-center rounded shadow cursor-pointer hover:bg-blue-300')} onClick={onExpandClick}>

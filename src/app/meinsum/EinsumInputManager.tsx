@@ -9,7 +9,7 @@ interface IEinsumEquation {
 interface EinsumInputManagerProps {
     operands: IOperand[],
     equation: string,
-    onOperandsChange: (operands: IOperand[]) => void,
+    isEquationValid: boolean | undefined,
     onEquationChange: (equation: string) => void,
     onAddOperand: () => void,
     onRemoveOperand: (index: number) => void,
@@ -19,7 +19,7 @@ interface EinsumInputManagerProps {
 function EinsumInputManager({
     operands,
     equation,
-    onOperandsChange,
+    isEquationValid,
     onEquationChange,
     onAddOperand,
     onRemoveOperand,
@@ -29,7 +29,10 @@ function EinsumInputManager({
     const handleEquationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         onEquationChange(event.target.value);
     };
-
+    const equationInputStyle = isEquationValid
+        ? {}
+        : { color: 'red', borderWidth: '2px' };
+    
     return (
         <div>
             {operands.map((operand, index) => (
@@ -50,7 +53,8 @@ function EinsumInputManager({
                     Equation:
                     <input 
                         type="text" 
-                        value={equation} 
+                        value={equation}
+                        style={equationInputStyle} 
                         onChange={handleEquationChange} 
                     />
                 </label>

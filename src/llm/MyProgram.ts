@@ -25,7 +25,8 @@ import { ILayout } from "../utils/layout";
 import { DimStyle } from "./walkthrough/WalkthroughTools";
 import { Subscriptions } from "../utils/hooks";
 
-import { IProgramState } from "./Program";
+import { IProgramState, IEinsumMenuItem } from "./Program";
+import { createOperand, calculateOutput } from "../app/meinsum/EinsumDemoApp";
 export interface IModelExample {
     name: string;
     shape: IModelShape;
@@ -58,6 +59,45 @@ export interface IHoverTarget {
     mainCube: IBlkDef;
     mainIdx: Vec3;
 }
+
+
+
+function addOutput(mi: IEinsumMenuItem): IEinsumMenuItem {
+    return { ...mi, state: { ...mi.state, output: calculateOutput(mi.state) } }
+}
+
+const menuItems = [
+    {
+        name: "Matrix Multiplication",
+        state: {
+            equation: 'ik,kj->ij',
+            operands: [createOperand('A', [16, 8]), createOperand('B', [8, 12])]
+        }
+    },
+
+    {
+        name: "Return a diagonal",
+        state: {
+            equation: 'ii->i',
+            operands: [createOperand('A', [16, 16])]
+        },
+    },
+
+    {
+        name: "Batched Matrix Multiplication",
+        state: {
+            equation: 'Bik,Bkj->Bij',
+            operands: [createOperand('A', [32, 16, 8]), createOperand('B', [32, 8, 12])]
+        }
+    },
+    // {
+    //     name: "Custom",
+    //     state: {
+    //         equation: 'Bik,ab,cd->c',
+    //         operands: [createOperand('A', [32, 16, 8]), createOperand('B', [32, 2]), createOperand('C', [8, 12])]
+    //     }
+    // },
+];
 
 export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtlasData): IProgramState {
 
@@ -122,8 +162,14 @@ export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFo
 
     let delta = new Vec3(10000, 0, 0);
 
-
+    const einsumProgramState: IEinsumProgramState = {
+        equation: 'i,j->i',
+        operands: [createOperand('A', [8]), createOperand('B', [7])],
+        output: createOperand('Q', [2, 2, 2])
+    };
     return {
+        einsumStates: menuItems,
+        currentEinsumState: 0,
         native: null,
         wasmGptModel: null,
         render: render!,

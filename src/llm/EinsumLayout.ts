@@ -217,6 +217,7 @@ let pad_multiplier = 3; // pad at lvl n = pad_lvl0*pad_multiplier^n
 
 
 function generateTensor(dims: number[], start: Vec3 = new Vec3(),): ITensorBlock {
+    if (!dims) return generateTensor([1, 1], start);
     const n_dims = dims.length;
 
     if (n_dims == 0) return generateTensor([1, 1], start);
@@ -397,27 +398,31 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     //     [12, 40],
     //     // [2, 3, 4, 5, 6],
     // ];
-    const shapes = state.inputs ? [...state.inputs] : [{ name: 'EMPTY', shape: [32, 32] }]; // TODO
+    const einsumState = state?.einsumStates ? state.einsumStates[state.currentEinsumState].state : null;
+    const operands = einsumState?.operands ? [...einsumState.operands] : [{ name: 'EMPTY', shape: [32, 32] }]; // TODO
 
-    if (state.output) {
-        shapes.push({ ...state.output })
+    if (einsumState?.output) {
+        console.log('einsumState.output', einsumState.output)
+        operands.push({ ...einsumState.output })
     }
+
+
     let xL = 0;
     let zF = 0;
     let y = 0;
 
     let start_block_at = new Vec3();
 
-    for (let i = 0; i < shapes.length; i++) {
-        const dims = shapes[i].shape;
+    for (let i = 0; i < operands.length; i++) {
+        const dims = operands[i].shape;
         let meinsumResult: (IBlkMeinsumResult | undefined) = undefined;
-        if (shapes.length > 1 && i == shapes.length - 1) {
+        if (operands.length > 1 && i == operands.length - 1) {
             const last_cube = cubes[cubes.length - 1]
             const first_cube = cubes[0]
             meinsumResult = { loopString: '3' }
         };
 
-        let name = shapes[i].name;
+        let name = operands[i].name;
 
         if (!name) {
             name = String.fromCharCode(65 + i) // 'A', 'B', 'C', ...

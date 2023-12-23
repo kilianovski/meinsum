@@ -23,6 +23,7 @@ import { IBlockRender, initBlockRender } from "./render/blockRender";
 import { ILayout } from "../utils/layout";
 import { DimStyle } from "./walkthrough/WalkthroughTools";
 import { Subscriptions } from "../utils/hooks";
+import { createOperand, IEinsumProgramState } from "../app/meinsum/EinsumDemoApp";
 
 export interface IOperand {
     name: string,
@@ -34,9 +35,11 @@ export interface IOutput {
     shape: number[],
     relmap: any[]
 }
+
+
 export interface IProgramState {
-    inputs: IOperand[] | undefined,
-    output: IOutput | undefined,
+    einsumStates: IEinsumMenuItem[];
+    currentEinsumState: number;
     native: NativeFunctions | null;
     wasmGptModel: IWasmGptModel | null;
     stepModel: boolean;
@@ -58,6 +61,12 @@ export interface IProgramState {
     pageLayout: ILayout;
     markDirty: () => void;
 }
+
+export interface IEinsumMenuItem {
+    name: string
+    state: IEinsumProgramState
+}
+
 
 export interface IModelExample {
     name: string;

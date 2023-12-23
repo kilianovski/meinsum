@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import clsx from 'clsx';
 
 export interface IOperand {
     name: string,
     shapeString: string
-    shape: number[] | null,
+    isShapeStringValid: boolean
+    shape: number[]
 }
 
 export function createOperand(name: string, shape:number[] ) : IOperand{
-    return {name, shape, shapeString: JSON.stringify(shape)}
+    return {name, shape, shapeString: JSON.stringify(shape), isShapeStringValid: true}
 }
 
 function tryParseShape(shapeStr: string): number[] | null {
@@ -43,17 +44,23 @@ interface OperandItemProps {
 }
 
 const OperandItem: React.FC<OperandItemProps> = ({ operand, onUpdate, onRemove }) => {
+    const [ text, setText ] = useState(operand.shapeString);
+
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({ ...operand, name: event.target.value });
     };
 
     const handleShapeStringChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const shapeString = event.target.value;
+        setText(shapeString);
+
         const parsedShape = tryParseShape(shapeString);
-        onUpdate({ ...operand, shape: parsedShape, shapeString });
+        const isShapeStringValid = Boolean(parsedShape);
+        const newShape = isShapeStringValid ? parsedShape : operand.shape;
+        onUpdate({...operand, shape: newShape, shapeString, isShapeStringValid});
     };
 
-    const shapeInputStyle = operand.shape !== null
+    const shapeInputStyle = operand.isShapeStringValid
         ? {}
         : { color: 'red', borderWidth: '2px' };
         const inputStyle = {
@@ -80,7 +87,7 @@ const OperandItem: React.FC<OperandItemProps> = ({ operand, onUpdate, onRemove }
         <input
                 type="text"
         className=''
-    value = { operand.shapeString }
+    value = { text }
     onChange = { handleShapeStringChange }
     placeholder = "Shape (e.g., 2,3)"
     style={{ ...inputStyle, ...shapeInputStyle }}

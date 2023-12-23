@@ -21,6 +21,7 @@ import { WelcomePopup } from './WelcomePopup';
 import { KeyboardManagerContext, KeyboardOrder, useGlobalKeyboard } from '@/src/utils/keyboard';
 import { Resizer } from '../utils/Resizer';
 import { ModelSelectorToolbar } from './components/ModelSelectorToolbar';
+import {MeinsumSidebar} from './MeinsumSidebar';
 
 async function fetchTensorData(url: string): Promise<ITensorSet> {
     let resp = await fetch(url);
@@ -187,12 +188,11 @@ export function LayerView() {
         }
     }, [canvasRender, layout]);
 
-    let sidebar = canvasRender;
-    // && <div className={s.sidebar}>
-    //     <ProgramStateContext.Provider value={canvasRender.progState}>
-    //         {/* <WalkthroughSidebar /> */}
-    //     </ProgramStateContext.Provider>
-    // </div>;
+    let sidebar = canvasRender && <div className={s.sidebar}>
+         <ProgramStateContext.Provider value={canvasRender.progState}>
+             <MeinsumSidebar />
+         </ProgramStateContext.Provider>
+     </div>;
 
     let mainView = <div className={s.canvasWrap}>
             
@@ -223,9 +223,9 @@ export function LayerView() {
 
     return <div className={s.view}>
         <Resizer id={"llm-sidebar"} className={"flex-1"} vertical={!layout.isDesktop} defaultFraction={0.4}>
-            {/* {layout.isDesktop && sidebar} */}
+            {layout.isDesktop && sidebar}
             {mainView}
-            {/* {!layout.isDesktop && sidebar} */}
+            {!layout.isDesktop && sidebar}
         </Resizer>
     </div>;
 }
