@@ -54,6 +54,7 @@ export enum BlkSpecial {
 // define how a cell is computed from other blocks
 // matrix-mulplication: cell(x, y, b) = sum_i(A[i, y] * B[x, i, b]) + C[0, y]
 export interface IBlkDeps {
+    src(src: any, idx: Vec3): unknown;
     dot?: [IBlkCellDep, IBlkCellDep];
     dotLen?: number;
     add?: IBlkCellDep[];
@@ -266,7 +267,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
     let idxObj = mk({
         t: 'i', cx: T, cz: B, cy: 1, y: y,
         xM: 0, zM: 0,
-        access: { src: gptGpuModel?.inputTokens, x: [0, 1, 0], y: [1, 0, T], scale: 1 / vocabSize},
+        access: { src: gptGpuModel?.inputTokens, x: [0, 1, 0], y: [1, 0, T], scale: 1 / vocabSize },
         dimX: DimStyle.T, dimY: DimStyle.None,
         name: 'Tokens',
     });
@@ -390,7 +391,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let qWeightBlock = mk({
                 t: 'w', cx: C, cz: 1, cy: A, y: y,
                 xR: qkvValLeftX, zM: qMid,
-                access: { src: attnTarget?.qkvWeight, x: [1, 0, 0], y: [0, 1, 0, 0*C + A*i], scale: C * 0.25 },
+                access: { src: attnTarget?.qkvWeight, x: [1, 0, 0], y: [0, 1, 0, 0 * C + A * i], scale: C * 0.25 },
                 dimX: DimStyle.C, dimY: DimStyle.A,
                 name: 'Q Weights',
             });
@@ -398,7 +399,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let kWeightBlock = mk({
                 t: 'w', cx: C, cz: 1, cy: A, y: y,
                 xR: qkvValLeftX, zM: kMid,
-                access: { src: attnTarget?.qkvWeight, x: [1, 0, 0], y: [0, 1, 0, 1*C + A*i], scale: C * 0.25 },
+                access: { src: attnTarget?.qkvWeight, x: [1, 0, 0], y: [0, 1, 0, 1 * C + A * i], scale: C * 0.25 },
                 dimX: DimStyle.C, dimY: DimStyle.A,
                 name: 'K Weights',
             });
@@ -406,7 +407,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let vWeightBlock = mk({
                 t: 'w', cx: C, cz: 1, cy: A, y: y,
                 xR: qkvValLeftX, zM: vMid,
-                access: { src: attnTarget?.qkvWeight, x: [1, 0, 0], y: [0, 1, 0, 2*C + A*i], scale: C * 0.25 },
+                access: { src: attnTarget?.qkvWeight, x: [1, 0, 0], y: [0, 1, 0, 2 * C + A * i], scale: C * 0.25 },
                 dimX: DimStyle.C, dimY: DimStyle.A,
                 name: 'V Weights',
             });
@@ -421,7 +422,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let qBiasBlock = mk({
                 t: 'w', cx: 1, cz: 1, cy: A, y: y,
                 xR: qkvBiasLeftX, zM: qMid,
-                access: { src: attnTarget?.qkvBias, x: [1, 0, 0], y: [0, 1, 0, 0*C + A*i] },
+                access: { src: attnTarget?.qkvBias, x: [1, 0, 0], y: [0, 1, 0, 0 * C + A * i] },
                 dimX: DimStyle.None, dimY: DimStyle.A, small: true,
                 name: 'Q Bias',
             });
@@ -429,7 +430,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let kBiasBlock = mk({
                 t: 'w', cx: 1, cz: 1, cy: A, y: y,
                 xR: qkvBiasLeftX, zM: kMid,
-                access: { src: attnTarget?.qkvBias, x: [1, 0, 0], y: [0, 1, 0, 1*C + A*i] },
+                access: { src: attnTarget?.qkvBias, x: [1, 0, 0], y: [0, 1, 0, 1 * C + A * i] },
                 dimX: DimStyle.None, dimY: DimStyle.A, small: true,
                 name: 'K Bias',
             });
@@ -437,7 +438,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let vBiasBlock = mk({
                 t: 'w', cx: 1, cz: 1, cy: A, y: y,
                 xR: qkvBiasLeftX, zM: vMid,
-                access: { src: attnTarget?.qkvBias, x: [1, 0, 0], y: [0, 1, 0, 2*C + A*i] },
+                access: { src: attnTarget?.qkvBias, x: [1, 0, 0], y: [0, 1, 0, 2 * C + A * i] },
                 dimX: DimStyle.None, dimY: DimStyle.A, small: true,
                 name: 'V Bias',
             });
@@ -445,7 +446,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let qBlock = mk({
                 t: 'i', cx: T, cz: B, cy: A, y: y,
                 xR: attnLeftX, zM: qMid,
-                access: { src: attnTarget?.qkvOutput, x: [0, 1, 0, 0*C + A*i], y: [1, 0, T], scale: 1.0 },
+                access: { src: attnTarget?.qkvOutput, x: [0, 1, 0, 0 * C + A * i], y: [1, 0, T], scale: 1.0 },
                 deps: { dot: [[qWeightBlock, 'iy'], [ln1.lnResid, 'xi']], add: [[qBiasBlock, '0y']], dotLen: C },
                 dimX: DimStyle.T, dimY: DimStyle.A,
                 name: 'Q vectors',
@@ -454,7 +455,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let kBlock = mk({
                 t: 'i', cx: T, cz: B, cy: A, y: y,
                 xR: attnLeftX, zM: kMid,
-                access: { src: attnTarget?.qkvOutput, x: [0, 1, 0, 1*C + A*i], y: [1, 0, T], scale: 1.0 },
+                access: { src: attnTarget?.qkvOutput, x: [0, 1, 0, 1 * C + A * i], y: [1, 0, T], scale: 1.0 },
                 deps: { dot: [[kWeightBlock, 'iy'], [ln1.lnResid, 'xi']], add: [[kBiasBlock, '0y']], dotLen: C },
                 dimX: DimStyle.T, dimY: DimStyle.A,
                 name: 'K vectors',
@@ -463,7 +464,7 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
             let vBlock = mk({
                 t: 'i', cx: T, cz: B, cy: A, y: y,
                 xR: attnLeftX, zM: vMid,
-                access: { src: attnTarget?.qkvOutput, x: [0, 1, 0, 2*C + A*i], y: [1, 0, T], scale: 1.0 },
+                access: { src: attnTarget?.qkvOutput, x: [0, 1, 0, 2 * C + A * i], y: [1, 0, T], scale: 1.0 },
                 deps: { dot: [[vWeightBlock, 'iy'], [ln1.lnResid, 'xi']], add: [[vBiasBlock, '0y']], dotLen: C },
                 dimX: DimStyle.T, dimY: DimStyle.A,
                 name: 'V vectors',
@@ -892,9 +893,9 @@ export function genGptModelLayout(shape: IModelShape, gptGpuModel: IGptModelLink
     //     xM: 0, zM: 0,
     // });
 
-    let weightCount = vocabSize*C + T*C +
-        nBlocks * ((2*C + 4*C*C + C + 3*C) + // self attn
-                   (2*C + 4*C + 8*C*C + C)) + 2*C; // mlp
+    let weightCount = vocabSize * C + T * C +
+        nBlocks * ((2 * C + 4 * C * C + C + 3 * C) + // self attn
+            (2 * C + 4 * C + 8 * C * C + C)) + 2 * C; // mlp
 
     // let decoderCount = vocabSize * C; (excluded from the weight count apparently)
 

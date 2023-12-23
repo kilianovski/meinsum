@@ -140,7 +140,7 @@ export function duplicateGrid(layout: IModelLayout, blk: IBlkDef): IBlkDef {
     return newBlk;
 }
 
-export function splitGridForHighlight(layout: IModelLayout, blk: IBlkDef, dim: Dim, xSplit: number) {
+export function splitGridForHighlight(layout: IModelLayout, blk: IBlkDef, dim: Dim, xSplit: number, splitAmt: number = 0) {
     let { x, cx, rangeOffsets } = dimProps(blk, dim);
 
     if (cx <= 1) {
@@ -150,14 +150,14 @@ export function splitGridForHighlight(layout: IModelLayout, blk: IBlkDef, dim: D
     // if there exists some rangeOffsets in our dim, then we iter over the sub-blocks, and split them
     if (rangeOffsets && blk.subs) {
         for (let s of blk.subs) {
-            let res = splitGrid(layout, s, dim, xSplit, 0);
+            let res = splitGrid(layout, s, dim, xSplit, splitAmt);
             if (res) {
                 return res;
             }
         }
     }
 
-    return splitGrid(layout, blk, dim, xSplit, 0);
+    return splitGrid(layout, blk, dim, xSplit, splitAmt);
 }
 
 export function splitGrid(layout: IModelLayout, blk: IBlkDef, dim: Dim, xSplit: number, splitAmt: number) {

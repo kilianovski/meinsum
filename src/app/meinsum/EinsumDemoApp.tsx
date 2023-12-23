@@ -60,7 +60,12 @@ export interface IEinsumDemoAppProps {
 
 export function calculateOutput(state: IEinsumProgramState) {
     const {relmap, displayPythonString} = tryCreateRelmap(state);
-    return relmap ? createOperand('Result', relmap.shape) : null;
+    let output;
+    if (relmap) {
+        output = createOperand('Result', relmap.shape);
+        output.relmap = relmap;
+    }
+    return output;
 }
 
 export const EinsumDemoApp = ({einsumProgramState, onStateChanged}: IEinsumDemoAppProps) => {
@@ -90,9 +95,8 @@ export const EinsumDemoApp = ({einsumProgramState, onStateChanged}: IEinsumDemoA
     if (!output) {
        let output = calculateOutput(einsumProgramState)
        if (output) {
-        output = createOperand('Result', output.shape);
        } else {
-        output = createOperand('ERROR', [1,1,1,1])
+        output = createOperand('ERROR', [1,1,1,1]);
        }
        onStateChanged({...einsumProgramState, output})
     }

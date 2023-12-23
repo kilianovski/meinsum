@@ -84,6 +84,14 @@ const menuItems = [
     },
 
     {
+        name: "Outer product",
+        state: {
+            equation: 'i,j->ij',
+            operands: [createOperand('A', [16]), createOperand('B', [12])]
+        },
+    },
+
+    {
         name: "Batched Matrix Multiplication",
         state: {
             equation: 'Bik,Bkj->Bij',
@@ -170,6 +178,7 @@ export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFo
     return {
         einsumStates: menuItems,
         currentEinsumState: 0,
+        // currentEinsumState: menuItems.length - 1,
         native: null,
         wasmGptModel: null,
         render: render!,

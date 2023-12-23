@@ -308,7 +308,7 @@ export function genCubeGeom(gl: WebGL2RenderingContext): IGeom {
     let j = 0;
     for (let faceMtx of faces) {
         for (let i = 0; i < 6; i++) {
-            let v = transform.mulVec3Proj(faceMtx.mulVec3Proj(new Vec3(faceVerts[i*2], faceVerts[i*2+1], -1)));
+            let v = transform.mulVec3Proj(faceMtx.mulVec3Proj(new Vec3(faceVerts[i * 2], faceVerts[i * 2 + 1], -1)));
             let n = faceMtx.mulVec3Proj(new Vec3(0, 0, -1));
             arr[j++] = Math.round(v.x);
             arr[j++] = Math.round(v.y);
@@ -428,7 +428,7 @@ export function renderAllBlocks(blockRender: IBlockRender, layout: IModelLayout,
         resetFloatBufferMap(blockRender.blockAccessUbo);
         ensureFloatBufferSize(blockAccessUbo, cubes.length);
         let blockBuf = blockAccessUbo.buf;
-        for  (let cube of allCubes) {
+        for (let cube of allCubes) {
             let baseOff = blockAccessUbo.usedEls * blockAccessUbo.strideFloats;
             if (cube.access && cube.access.disable !== true) {
                 blockBuf.set(cube.access.mat.slice(0, 8), baseOff);

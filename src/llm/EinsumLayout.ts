@@ -320,7 +320,10 @@ export function cellPosition(layout: IModelLayout, blk: IBlkDef, dim: Dim, index
 export type IGptModelLayout = ReturnType<typeof genEinsumLayout>;
 export type IGptLayerNormLayout = IGptModelLayout['ln_f'];
 
+export interface IMeinsumRelation {
+    source: IBlkDef;
 
+}
 
 export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0, 0, 0)) {
 
@@ -402,7 +405,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     const operands = einsumState?.operands ? [...einsumState.operands] : [{ name: 'EMPTY', shape: [32, 32] }]; // TODO
 
     if (einsumState?.output) {
-        console.log('einsumState.output', einsumState.output)
+        // console.log('einsumState.output', einsumState.output)
         operands.push({ ...einsumState.output })
     }
 
@@ -416,10 +419,49 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     for (let i = 0; i < operands.length; i++) {
         const dims = operands[i].shape;
         let meinsumResult: (IBlkMeinsumResult | undefined) = undefined;
+        let deps = null;
+        let idx2deps = null;
         if (operands.length > 1 && i == operands.length - 1) {
             const last_cube = cubes[cubes.length - 1]
             const first_cube = cubes[0]
-            meinsumResult = { loopString: '3' }
+            // meinsumResult = { loopString: '3' }
+
+            // deps = { add: [[first_cube, 'xy']] }
+
+            let relmap = operands[i].relmap
+            // let lastMatrixRelmap = relmap.array[relmap.array.length - 1];
+            // for (let d = 1; d < relmap.shape.length - 2; d++) {
+            //     lastMatrixRelmap = lastMatrixRelmap[lastMatrixRelmap.length - 1];
+            // }
+
+            // if (relmap.shape.length )
+            // let lastMatrixRelmap = relmap.array
+
+            // idx2deps = {};
+
+
+
+            // for (let ii = 0; ii < lastMatrixRelmap.length; ii++) {
+            //     idx2deps[ii] = {}
+            //     for (let jj = 0; jj < lastMatrixRelmap[ii].length; jj++) {
+            //         idx2deps[ii][jj] = []
+
+            //         for (let additiveRelation of lastMatrixRelmap[ii][jj]) {
+            //             for (let { operand_i, local_idx } of additiveRelation) {
+            //                 // for (let { operand_i, local_idx } of lastMatrixRelmap[ii][jj]) {
+            //                 // TODO: scale to other dims
+            //                 const dependentCube = cubes[operand_i];
+
+            //                 idx2deps[ii][jj].push({ dependentCube, local_idx })
+            //             }
+            //         }
+            //         // console.log(idx2deps)
+            //     }
+            // }
+
+            // console.log('lastMatrixRelmap.length', lastMatrixRelmap.length, 'lastMatrixRelmap[0].length', lastMatrixRelmap[0].length, 'relmap.shape', relmap.shape, 'idx2deps', idx2deps)
+
+            // console.log('THE RESULT', state.einsumStates[state.currentEinsumState].state.output)
         };
 
         let name = operands[i].name;
@@ -430,16 +472,21 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
         const block = generateTensor(dims, start_block_at);
 
-        const blockCubes = block.cubes.map(c => cubes.push(mk({
-            t: 'w',
-            xL: c.coords.x, zF: c.coords.z, y: c.coords.y,
-            cx: c.cx, cz: 1, cy: c.cy,
-            meinsumResult,
-            access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-            dimX: DimStyle.n_vocab, dimY: DimStyle.C,
-            name,
-        })));
+        const blockCubes = block.cubes.map(c => {
+            const cube = mk({
+                t: 'w',
+                xL: c.coords.x, zF: c.coords.z, y: c.coords.y,
+                cx: c.cx, cz: 1, cy: c.cy,
+                meinsumResult,
+                deps,
 
+                access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
+                dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+                name,
+            })
+            // cube.idx2deps = idx2deps;
+            cubes.push(cube)
+        });
 
         start_block_at = block.blockDescription.frontUpRight.add(new Vec3(10));
     }
@@ -451,6 +498,8 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     for (let i = 0; i < cubes.length; i++) {
         cubes[i].idx = i;
     }
+
+    // console.log(cubes[cubes.length - 1])
 
     return {
         cubes,

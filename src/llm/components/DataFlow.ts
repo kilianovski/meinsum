@@ -56,8 +56,9 @@ export function drawDataFlow(state: IProgramState, blk: IBlkDef, destIdx: Vec3, 
 
     let bb = new BoundingBox3d();
 
+    blk.highlight = 10.
 
-    console.log('blk.meinsumResult', blk.meinsumResult)
+    // console.log('blk.meinsumResult', blk.meinsumResult)
     if (blk.meinsumResult) {
         drawMeinsum(dataFlowArgs);
         return;

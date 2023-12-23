@@ -21,7 +21,7 @@ export function runLayer() {
     let outputs = new Float32Array(wOut);
 
     for (let i = 0; i < wIn; i++) {
-        inputs[i] = rand.normal();
+        inputs[i] = rand.normal()
     }
 
     // setup weights randomly

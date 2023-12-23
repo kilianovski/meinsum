@@ -16,7 +16,7 @@ export const MeinsumSidebar: React.FC = () => {
     const {einsumStates, currentEinsumState} = progState;
 
     const {state, name} = einsumStates[currentEinsumState];
-    console.log(state);
+    // console.log(state);
     // if (!progState) return <div></div>
 
     function handleStateChanged(newState: IEinsumProgramState) {

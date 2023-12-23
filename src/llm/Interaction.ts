@@ -173,6 +173,7 @@ export function getDepSrcIdx(dep: IBlkCellDep, destIdx: Vec3) {
     let hasYDot = mtx.g(1, 3) !== 0;
     let srcIdx4 = mtx.mulVec4(Vec4.fromVec3(destIdx, 0));
     let srcIdx = new Vec3(srcIdx4.x, srcIdx4.y, srcIdx4.z);
+    // let srcIdx = new Vec3(1, 1, srcIdx4.z);
     let dotDim = hasXDot ? Dim.Y : Dim.X;
     return { srcIdx, dotDim, otherDim: dotDim === Dim.X ? Dim.Y : Dim.X, isDot: hasXDot || hasYDot };
 }
@@ -190,12 +191,56 @@ export function getDepDotLen(blk: IBlkDef, destIdx: Vec3): number | null {
     return dotLen;
 }
 
+
+// function highlightAtIdxs(blk, idxs)
+
 export function drawDependences(state: IProgramState, blk: IBlkDef, idx: Vec3) {
     let layout = state.layout;
     let deps = blk.deps;
+
+
+    function highlightAtPos(blk: IBlkDef, xyz: Vec3) {
+        let sub = splitGridForHighlight(layout, blk, Dim.X, xyz.x);
+        if (!sub) return;
+        sub = splitGridForHighlight(layout, sub, Dim.Y, xyz.y);
+        if (!sub) return;
+        sub = splitGridForHighlight(layout, sub, Dim.Z, xyz.z);
+        if (sub) sub.highlight = 1.5;
+    }
+
+    // highlightAtPos(blk, idx);
+
+
+    function high(blk, srcIdx) {
+        let sub = splitGridForHighlight(layout, blk, Dim.X, srcIdx.x);
+        if (!sub) return;
+        sub = splitGridForHighlight(layout, sub, Dim.Y, srcIdx.y);
+        if (!sub) return;
+        sub = splitGridForHighlight(layout, sub, Dim.Z, srcIdx.z);
+        if (sub) sub.highlight = 1.5;
+    }
+
+    // if (blk.idx2deps) {
+    //     let currentDeps = blk.idx2deps[idx.y];
+    //     currentDeps = currentDeps ? currentDeps[idx.x] : null;
+    //     if (currentDeps) {
+
+    //         for (let { dependentCube, local_idx } of currentDeps) {
+    //             high(dependentCube, new Vec3(local_idx[0], local_idx[1]))
+    //         }
+    //         console.log(idx, 'currentDeps', currentDeps)
+
+    //     } else {
+    //         console.error(idx.x, idx.y)
+
+    //     }
+    // }
+
     if (!deps) {
         return;
     }
+
+
 
     function drawDep(dep: IBlkCellDep, destIdx: Vec3, dotLen?: number | null) {
         let { srcIdx, dotDim, otherDim, isDot } = getDepSrcIdx(dep, destIdx);
@@ -219,18 +264,14 @@ export function drawDependences(state: IProgramState, blk: IBlkDef, idx: Vec3) {
                     parts.highlight = 0.5;
                 }
             } else {
-                console.log('BEFORE', blk.subs?.length)
+                // console.log('BEFORE', blk.subs?.length)
                 splitGridAll(layout, blk, Dim.X)
-                console.log('AFtER', blk.subs?.length)
+                // console.log('AFtER', blk.subs?.length)
                 if (sub) sub.highlight = 1.5;
             }
         } else {
-            let sub = splitGridForHighlight(layout, dep.src, Dim.X, srcIdx.x);
-            if (!sub) return;
-            sub = splitGridForHighlight(layout, sub, Dim.Y, srcIdx.y);
-            if (!sub) return;
-            sub = splitGridForHighlight(layout, sub, Dim.Z, srcIdx.z);
-            if (sub) sub.highlight = 0.5;
+            console.log('srcIdx', srcIdx)
+            high(dep.src, srcIdx);
         }
     }
 
@@ -246,7 +287,19 @@ export function drawDependences(state: IProgramState, blk: IBlkDef, idx: Vec3) {
     }
     if (deps.add) {
         for (let dep of deps.add) {
-            drawDep(dep, idx);
+            // for (let srcIdx in [new Vec3(0, 1, 1), new Vec3(0, 0, 0), new Vec3(0, 1, 1)]) {
+            //     let sub = splitGridForHighlight(layout, dep.src, Dim.X, srcIdx.x);
+            //     if (!sub) break;
+            //     sub = splitGridForHighlight(layout, sub, Dim.Y, srcIdx.y);
+            //     if (!sub) break;
+            //     sub = splitGridForHighlight(layout, sub, Dim.Z, srcIdx.z);
+            //     if (sub) sub.highlight = 1.5;
+            // }
+
+            high(dep.src, new Vec3(idx.x, idx.y));
+            high(dep.src, new Vec3(idx.x, idx.x));
+
+            // drawDep(dep, idx);
         }
     }
 
