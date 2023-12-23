@@ -207,7 +207,7 @@ export function LayerView() {
         </div>}
         {/* <div className={s.cursorFollow} style={{ top: pointPos.y, left: pointPos.x }} /> */}
         {canvasRender && <ProgramStateContext.Provider value={canvasRender.progState}>
-        x
+        
             <CanvasEventSurface>
                 {/* <MovementControls /> */}
             </CanvasEventSurface>
@@ -263,7 +263,7 @@ class CanvasRender {
             this.progState.gptGpuModel = initModel(this.renderState, data.dataAndModel, 1);
             this.progState.native = data.dataAndModel.native;
             this.progState.wasmGptModel = constructModel(data.dataAndModel.model, data.dataAndModel.model.config, data.dataAndModel.native);
-            this.progState.jsGptModel = createGpuModelForWasm(this.renderState.gl, data.dataAndModel.model.config);
+            // this.progState.jsGptModel = createGpuModelForWasm(this.renderState.gl, data.dataAndModel.model.config);
             // initWebGpu();
             // setModelInputData(this.renderState, this.progState.gptGpuModel, this.random);
             // runModel(this.renderState, this.progState.gptGpuModel);

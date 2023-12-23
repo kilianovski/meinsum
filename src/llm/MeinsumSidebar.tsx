@@ -52,9 +52,7 @@ export const MeinsumSidebar: React.FC = () => {
     return <div className={s.walkthrough}>
         <div className={s.split}>
 
-            <div className={s.timelineLeft}>
-                {/* <PhaseTimeline /> */}
-            </div>
+
 
             <div className={s.content}>
                 {/* <div className={s.menuTopBar}>
