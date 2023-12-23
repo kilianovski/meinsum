@@ -18,13 +18,18 @@ function tryCreateRelmap(einsumProgramState: IEinsumProgramState) {
 
 
     let relmap;
+    let inputDims;
+    let freeDims;
+
     let displayPythonString = '';
     try {
         const relmapOutput = buildRelationMap(equation, ...shapes);
         if (!relmapOutput.valid) {
             displayPythonString = `raise ValueError("${relmapOutput.reason}")`;
         } else {
-            const { freeDims, dim2size, summationDims, inputDims } = relmapOutput;
+            const { dim2size, summationDims } = relmapOutput;
+            inputDims = relmapOutput.inputDims;
+            freeDims = relmapOutput.freeDims;
             relmap = relmapOutput.relmap;
             // function createPythonLoopString(
             //     operandNames: string[],
@@ -45,7 +50,7 @@ function tryCreateRelmap(einsumProgramState: IEinsumProgramState) {
         displayPythonString = ''+exception
     }
 
-    return {relmap, displayPythonString}
+    return {relmap, displayPythonString, inputDims, freeDims}
 }
 export interface IEinsumProgramState {
     equation: string,
@@ -59,11 +64,13 @@ export interface IEinsumDemoAppProps {
 }
 
 export function calculateOutput(state: IEinsumProgramState) {
-    const {relmap, displayPythonString} = tryCreateRelmap(state);
+    const {relmap, inputDims, freeDims} = tryCreateRelmap(state);
     let output;
     if (relmap) {
         output = createOperand('Result', relmap.shape);
         output.relmap = relmap;
+        output.freeDims = freeDims;
+        output.inputDims = inputDims;
     }
     return output;
 }
@@ -87,7 +94,8 @@ export const EinsumDemoApp = ({einsumProgramState, onStateChanged}: IEinsumDemoA
         return createOperand(newName, defaultShape);
     }
 
-    function _onWithOutput(newState: IEinsumProgramState) {
+    function _onWithOutput(state: IEinsumProgramState) {
+        const newState = {...state}
         newState.output = calculateOutput(newState);
         onStateChanged(newState);
     }

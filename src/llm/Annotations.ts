@@ -20,7 +20,7 @@ export function blockDimension(state: IProgramState, layout: IModelLayout, blk: 
 
     let offVecId = vecId === 0 ? 1 : 0;
 
-    let text = dimStyleText(style);
+    let text = (blk.customDimText && blk.customDimText[dim]) || dimStyleText(style);
     if (style === DimStyle.None) {
         return;
     }

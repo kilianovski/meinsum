@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import OperandItem, {IOperand} from './OperandItem'; // Import the child component
 
 interface IEinsumEquation {
@@ -25,9 +25,12 @@ function EinsumInputManager({
     onRemoveOperand,
     onUpdateOperand
 }: EinsumInputManagerProps) {
+    const [ equationText, setEquationText ] = useState(equation);
 
     const handleEquationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        onEquationChange(event.target.value);
+        const newEquation = event.target.value;
+        setEquationText(newEquation);
+        onEquationChange(newEquation);
     };
     const equationInputStyle = isEquationValid
         ? {}

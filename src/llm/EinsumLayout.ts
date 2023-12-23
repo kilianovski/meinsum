@@ -404,11 +404,22 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
     const einsumState = state?.einsumStates ? state.einsumStates[state.currentEinsumState].state : null;
     const operands = einsumState?.operands ? [...einsumState.operands] : [{ name: 'EMPTY', shape: [32, 32] }]; // TODO
 
+    let freeDims;
+    let inputDims;
+    let dimNames = [];
     if (einsumState?.output) {
         // console.log('einsumState.output', einsumState.output)
-        operands.push({ ...einsumState.output })
-    }
+        operands.push({ ...einsumState.output });
+        console.log(einsumState.output)
 
+        if (Array.isArray(einsumState.output.inputDims)) {
+            freeDims = einsumState.output.freeDims;
+            inputDims = einsumState.output.inputDims;
+
+            dimNames = [...inputDims, freeDims.join('')]
+        }
+
+    }
 
     let xL = 0;
     let zF = 0;
@@ -421,6 +432,15 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
         let meinsumResult: (IBlkMeinsumResult | undefined) = undefined;
         let deps = null;
         let idx2deps = null;
+
+        let thisOpDimNames;
+
+        if (dimNames && i < dimNames.length) {
+            thisOpDimNames = dimNames[i];
+            console.log(i, 'thisOpDimNames', thisOpDimNames)
+        }
+
+
         if (operands.length > 1 && i == operands.length - 1) {
             const last_cube = cubes[cubes.length - 1]
             const first_cube = cubes[0]
@@ -481,10 +501,26 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
                 deps,
 
                 access: { x: [0, 1, 0], y: [1, 0, 0], scale: 10 },
-                dimX: DimStyle.n_vocab, dimY: DimStyle.C,
+                dimX: DimStyle.A, dimY: DimStyle.B,
                 name,
             })
             // cube.idx2deps = idx2deps;
+            const customDimText: any = {};
+
+            if (thisOpDimNames) {
+                if (thisOpDimNames.length > 0)
+                    customDimText[Dim.X] = thisOpDimNames[thisOpDimNames.length - 1];
+                if (thisOpDimNames.length > 1)
+                    customDimText[Dim.Y] = thisOpDimNames[thisOpDimNames.length - 2];
+
+                if (thisOpDimNames.length == 1) {
+                    customDimText[Dim.Y] = thisOpDimNames[thisOpDimNames.length - 1];
+                    customDimText[Dim.X] = '1';
+                }
+            }
+
+
+            cube.customDimText = customDimText;
             cubes.push(cube)
         });
 
@@ -493,7 +529,7 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
 
     // console.log(cubes.map(cu => cu.meinsumResult))
 
-    let embedLabel = mkLabel(y, cubes);
+    // let embedLabel = mkLabel(y, cubes);
 
     for (let i = 0; i < cubes.length; i++) {
         cubes[i].idx = i;
@@ -506,8 +542,8 @@ export function genEinsumLayout(state: IProgramState, offset: Vec3 = new Vec3(0,
         cell,
         margin,
 
-        embedLabel,
+        // embedLabel,
         height: y,
-        labels: [embedLabel],
+        labels: [],
     };
 }

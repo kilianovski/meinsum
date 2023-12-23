@@ -87,7 +87,7 @@ const OperandItem: React.FC<OperandItemProps> = ({ operand, onUpdate, onRemove }
         <input
                 type="text"
         className=''
-    value = { text }
+    value = { operand.shapeString }
     onChange = { handleShapeStringChange }
     placeholder = "Shape (e.g., 2,3)"
     style={{ ...inputStyle, ...shapeInputStyle }}

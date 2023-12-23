@@ -349,19 +349,19 @@ export function runEinsumProgram(view: IRenderView, state: IProgramState) {
     // drawBlockLabels(state.render, state.layout);
     let baseColor = new Vec4(0.4, 0.4, 0.4, 1.0);
 
-    {
-        const layout = state.layout;
-        // const st
+    // {
+    //     const layout = state.layout;
+    //     // const st
 
-        const x = -10;
-        const y = 10;
-        const dy = 5;
+    //     const x = -10;
+    //     const y = 10;
+    //     const dy = 5;
 
-        let color = baseColor.mul(layout.embedLabel.visible);
-        let tl = new Vec3(x - layout.margin * 2, y, 0);
-        let br = new Vec3(x - layout.margin * 2, y + dy, 0);
-        drawSectionLabel(state.render, "Embedding", tl, br, { color, fontSize: 6, pad: 4 });
-    }
+    //     let color = baseColor.mul(layout.embedLabel.visible);
+    //     let tl = new Vec3(x - layout.margin * 2, y, 0);
+    //     let br = new Vec3(x - layout.margin * 2, y + dy, 0);
+    //     drawSectionLabel(state.render, "Embedding", tl, br, { color, fontSize: 6, pad: 4 });
+    // }
 
     let lineNo = 1;
     let tw = state.render.size.x;

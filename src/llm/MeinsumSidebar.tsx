@@ -51,9 +51,6 @@ export const MeinsumSidebar: React.FC = () => {
 
     return <div className={s.walkthrough}>
         <div className={s.split}>
-
-
-
             <div className={s.content}>
                 {/* <div className={s.menuTopBar}>
                     <div className={s.menu} ref={setMenuButtonEl} onClick={() => setMenuVisible(a => !a)}>Menu &gt;</div>
