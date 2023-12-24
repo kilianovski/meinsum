@@ -2,6 +2,7 @@ import React from 'react';
 import { LayerView } from '@/src/llm/LayerView';
 import { InfoButton } from '@/src/llm/WelcomePopup';
 import { faCircleQuestion } from '@fortawesome/free-regular-svg-icons';
+import { faGithub, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 // export const metadata = {
@@ -15,10 +16,32 @@ export const Header: React.FC<{
 }> = ({ title, children }) => {
 
     return <div className="flex justify-between items-center px-2 py-1 bg-blue-950 text-white h-[2.5rem] flex-shrink-0">
-        <div className="flex items-center">{children}</div>
+
+        <div className="flex items-center">{children}
+
+        <div className="p-2">
+            <a href="https://github.com/mishakeyvalue/mastering-einsum" rel="noopener noreferrer" target="_blank">
+                <FontAwesomeIcon icon={faGithub} />
+            </a>
+        </div>
+
+        <div className="p-2">
+            <a href="https://twitter.com/mishakeyvalue" rel="noopener noreferrer" target="_blank">
+                <FontAwesomeIcon icon={faTwitter} />
+            </a>
+        </div>
+
+        </div>
         {title && <div className="text-2xl">{title}</div>}
+
         <div className="hover:underline">
-            {/* <Link href={"/"}>Home</Link> */}
+        <div>
+        <a href='https://github.com/bbycroft/llm-viz'>
+            <div>
+                llm-vis
+            </div>
+        </a>
+        </div>
         </div>
     </div>;
 
@@ -27,12 +50,9 @@ export const Header: React.FC<{
 export default function Page() {
     return <>
         <Header title="einsum visualization">
-        <a href='https://github.com/bbycroft/llm-viz'>
-            <div>
-                <FontAwesomeIcon icon={faCircleQuestion} />
-            </div>
-        </a>
+
         </Header>
+
         <LayerView />
         <div id="portal-container"></div>
     </>;
