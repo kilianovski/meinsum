@@ -66,7 +66,49 @@ function addOutput(mi: IEinsumMenuItem): IEinsumMenuItem {
     return { ...mi, state: { ...mi.state, output: calculateOutput(mi.state) } }
 }
 
+const nHeads = 4;
+const hiddenSize = 8;
+const nQueries = 4;
+const nKeys = 12;
+const batch_size = 8;
+
 const menuItems = [
+    {
+        name: "Multihead Query-Key Attention scores (similarity between each query and each key)",
+        state: {
+            equation: 'Bnqh,Bnkh->Bnqk',
+            operands: [
+                createOperand('Q', [batch_size, nHeads, nQueries, hiddenSize]),
+                createOperand('K', [batch_size, nHeads, nKeys, hiddenSize]),
+            ]
+        },
+    },
+
+    {
+        name: "Quadratic form",
+        state: {
+            equation: 'a,ab,b->',
+            operands: [createOperand('x', [7]), createOperand('Symmetric Q', [7, 7]), createOperand('x', [7])]
+        },
+    },
+
+    {
+        name: "Dot product",
+        state: {
+            equation: 'i,i->',
+            operands: [createOperand('A', [16]), createOperand('B', [16])]
+        },
+    },
+
+    {
+        name: "Outer product transposed",
+        state: {
+            equation: 'i,j->ji',
+            operands: [createOperand('A', [7]), createOperand('B', [22])]
+        },
+    },
+
+
     {
         name: "Matrix Multiplication",
         state: {
@@ -84,27 +126,19 @@ const menuItems = [
     },
 
     {
-        name: "Outer product",
-        state: {
-            equation: 'i,j->ij',
-            operands: [createOperand('A', [16]), createOperand('B', [12])]
-        },
-    },
-
-    {
         name: "Batched Matrix Multiplication",
         state: {
             equation: 'Bik,Bkj->Bij',
             operands: [createOperand('A', [32, 16, 8]), createOperand('B', [32, 8, 12])]
         }
     },
-    // {
-    //     name: "Custom",
-    //     state: {
-    //         equation: 'Bik,ab,cd->c',
-    //         operands: [createOperand('A', [32, 16, 8]), createOperand('B', [32, 2]), createOperand('C', [8, 12])]
-    //     }
-    // },
+    {
+        name: "Custom",
+        state: {
+            equation: 'abcdefg,h->he',
+            operands: [createOperand('A', [2, 2, 2, 2, 2, 3, 3]), createOperand('B', [8])]
+        }
+    },
 ];
 
 export function initProgramState(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtlasData): IProgramState {
