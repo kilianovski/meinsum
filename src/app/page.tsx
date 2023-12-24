@@ -4,12 +4,12 @@ import { InfoButton } from '@/src/llm/WelcomePopup';
 import { faCircleQuestion } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const metadata = {
-  title: 'einsum visualization',
-  description: 'Sandbox for visualizing einsum. Includes pseudocode generation and 3d visualization of shapes of a given einsum program.',
-};
+// export const metadata = {
+//   title: 'einsum visualization',
+//   description: 'Sandbox for visualizing einsum. Includes pseudocode generation and 3d visualization of shapes of a given einsum program.',
+// };
 
-const Header: React.FC<{
+export const Header: React.FC<{
     title: React.ReactNode;
     children?: React.ReactNode;
 }> = ({ title, children }) => {

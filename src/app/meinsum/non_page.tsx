@@ -6,7 +6,7 @@ import { InfoButton } from '@/src/llm/WelcomePopup';
 import EinsumInputManager from './EinsumInputManager'; // Import the child component
 import {EinsumDemoApp} from './EinsumDemoApp';
 
-import { Header } from '@/src/homepage/Header';
+import { Header } from '../page';
 
 interface IOperandItem {
     name: string,
