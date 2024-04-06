@@ -14,4 +14,9 @@ yarn
 yarn dev
 ```
 
-gh pages are deployed from `docs/`.
+gh pages are deployed from `docs/`. Build it with
+
+```bash
+yarn build
+```
+
