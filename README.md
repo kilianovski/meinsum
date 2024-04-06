@@ -15,6 +15,3 @@ yarn dev
 ```
 
 gh pages are deployed from `docs/`.
-
-Export with `yarn export`
-

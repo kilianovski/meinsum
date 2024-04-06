@@ -8,8 +8,8 @@ const nextConfig = {
   reactStrictMode: false, // Recommended for the `pages` directory, default in `app`.
   distDir: 'docs',
   output: 'export',
-  basePath: '/mastering-einsum',
-  assetPrefix: '/mastering-einsum/',
+  basePath: '/einsum3d',
+  assetPrefix: '/einsum3d/',
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if
