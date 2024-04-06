@@ -20,13 +20,13 @@ export const Header: React.FC<{
         <div className="flex items-center">{children}
 
         <div className="p-2">
-            <a href="https://github.com/mishakeyvalue/mastering-einsum" rel="noopener noreferrer" target="_blank">
+            <a href="https://github.com/manifoldhiker/einsum3d" rel="noopener noreferrer" target="_blank">
                 <FontAwesomeIcon icon={faGithub} />
             </a>
         </div>
 
         <div className="p-2">
-            <a href="https://twitter.com/mishakeyvalue" rel="noopener noreferrer" target="_blank">
+            <a href="https://twitter.com/manifoldhiker" rel="noopener noreferrer" target="_blank">
                 <FontAwesomeIcon icon={faTwitter} />
             </a>
         </div>
