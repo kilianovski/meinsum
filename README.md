@@ -20,3 +20,5 @@ gh pages are deployed from `docs/`. Build it with
 yarn build
 ```
 
+⚠️ `.nojekyll` is required in `./docs/`, otherwise github pages ignore assets in `_next`
+
